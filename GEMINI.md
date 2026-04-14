@@ -6,7 +6,7 @@
 The project is part of the academic requirements for the **Internet Apps** and **Cellular Apps** courses at Colman College.
 
 ### Core Repositories & Components
-This repository (`snapcal-internetapps`) is intended to house both the Backend and Web Frontend:
+This repository (`snapcal-internetapps`) houses both the Backend and Web Frontend:
 - **Backend (`/server`):** Node.js (Express, TypeScript) REST API.
 - **Web Frontend (`/client`):** React (TypeScript) application.
 - *Note: The Android Mobile App (`/app`) is managed in a separate "Cellular Repo".*
@@ -21,10 +21,11 @@ This repository (`snapcal-internetapps`) is intended to house both the Backend a
 - **Testing:** Unit tests using Jest.
 
 ### Web Frontend (React)
-- **Framework:** React.js with TypeScript and `react-router-dom`.
-- **Styling:** Material UI (MUI) or Tailwind CSS (responsive, dark-mode focused).
+- **Framework:** React.js (TypeScript) + Vite.
+- **Styling:** Tailwind CSS (responsive, dark-mode focused).
+- **Icons:** Lucide React.
 - **State/Networking:** Axios with interceptors for JWT management.
-- **Testing:** React Testing Library and Jest.
+- **Testing:** Vitest and React Testing Library.
 
 ### Mobile Frontend (Android Kotlin) - *External Repo Context*
 - **Architecture:** MVVM with Fragments and Navigation Component.
@@ -43,7 +44,10 @@ This repository (`snapcal-internetapps`) is intended to house both the Backend a
 - [ ] TODO: Configure `.env` for MongoDB URI, JWT Secrets, and AI API Keys.
 
 ### Web Frontend (`/client`)
-- [ ] TODO: Add specific start commands (e.g., `npm install && npm start`).
+- **Setup:** `cd client && npm install`
+- **Development:** `npm run dev`
+- **Testing:** `npm run test` (runs Vitest)
+- **Build:** `npm run build`
 
 ### Deployment
 - **Process Manager:** PM2 (running in `NODE_ENV=production`).
@@ -65,3 +69,11 @@ This repository (`snapcal-internetapps`) is intended to house both the Backend a
 - Strictly adhere to the **Task Division Plan** to avoid merge conflicts:
   - **Mishelle:** Auth, Profiles, Social, DevOps.
   - **Ofir:** Posts, AI Integration, Pagination, External APIs.
+
+## Current Progress (Ofir's Domain)
+- [x] Scaffolding React + Vite + Tailwind project.
+- [x] Core Feed UI components (`MealCard`, `Feed`, `RecipeOfTheDay`, `CreateMealModal`).
+- [x] Frontend unit tests with Vitest (7 tests passing).
+- [ ] Backend API Scaffolding (Branch 2).
+- [ ] AI Service Integration (Branch 3).
+- [ ] Full Stack Integration (Branch 4).
