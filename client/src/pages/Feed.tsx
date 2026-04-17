@@ -28,7 +28,7 @@ export default function Feed() {
             username: post.author.username,
             avatar: post.author.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
           },
-          imageUrl: `http://localhost:3000${post.imageUrl}`,
+          imageUrl: `http://localhost:3001${post.imageUrl}`,
           description: post.description,
           calories: post.calories,
           likes: post.likes.length,
