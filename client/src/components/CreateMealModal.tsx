@@ -66,7 +66,7 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
         id: post._id,
         userId: currentUser.id,
         user: currentUser,
-        imageUrl: `http://localhost:3001${post.imageUrl}`,
+        imageUrl: `${import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'}${post.imageUrl}`,
         description: post.description,
         calories: post.calories,
         protein: analysis.protein,

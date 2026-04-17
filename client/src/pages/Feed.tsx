@@ -21,14 +21,14 @@ export default function Feed() {
         const response = await fetchPosts(page);
         const newMeals: Meal[] = response.data.map((post: any) => ({
           id: post._id,
-          userId: post.author._id,
+          userId: post.author?._id || 'unknown',
           user: {
-            id: post.author._id,
-            name: post.author.username,
-            username: post.author.username,
-            avatar: post.author.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+            id: post.author?._id || 'unknown',
+            name: post.author?.username || 'Unknown User',
+            username: post.author?.username || 'unknown',
+            avatar: post.author?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Unknown',
           },
-          imageUrl: `http://localhost:3001${post.imageUrl}`,
+          imageUrl: `${import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'}${post.imageUrl}`,
           description: post.description,
           calories: post.calories,
           likes: post.likes.length,
