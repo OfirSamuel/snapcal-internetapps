@@ -3,6 +3,7 @@ import { X, Upload, Sparkles, Loader2 } from 'lucide-react';
 import { estimateCalories } from '../lib/aiAnalyzer';
 import type { Meal } from '../types';
 import { currentUser } from '../lib/mockData';
+import { createPost } from '../lib/api';
 
 interface CreateMealModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface CreateMealModalProps {
 }
 
 export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalProps) {
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [description, setDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
@@ -27,6 +29,7 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -47,32 +50,45 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
     setAnalyzing(false);
   };
 
-  const handleSubmit = () => {
-    if (!imageUrl || !description || !analysis) return;
+  const handleSubmit = async () => {
+    if (!imageFile || !description || !analysis) return;
 
-    const newMeal: Meal = {
-      id: `meal-${Date.now()}`,
-      userId: currentUser.id,
-      user: currentUser,
-      imageUrl,
-      description,
-      calories: analysis.calories,
-      protein: analysis.protein,
-      carbs: analysis.carbs,
-      fat: analysis.fat,
-      likes: 0,
-      comments: 0,
-      isLiked: false,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const formData = new FormData();
+      formData.append('description', description);
+      formData.append('calories', analysis.calories.toString());
+      formData.append('image', imageFile);
 
-    onSubmit(newMeal);
-    
-    // Reset form
-    setImageUrl('');
-    setDescription('');
-    setAnalysis(null);
-    onClose();
+      const response = await createPost(formData);
+      const post = response.data;
+
+      const newMeal: Meal = {
+        id: post._id,
+        userId: currentUser.id,
+        user: currentUser,
+        imageUrl: `${import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'}${post.imageUrl}`,
+        description: post.description,
+        calories: post.calories,
+        protein: analysis.protein,
+        carbs: analysis.carbs,
+        fat: analysis.fat,
+        likes: 0,
+        comments: 0,
+        isLiked: false,
+        createdAt: post.createdAt || new Date().toISOString(),
+      };
+
+      onSubmit(newMeal);
+      
+      // Reset form
+      setImageFile(null);
+      setImageUrl('');
+      setDescription('');
+      setAnalysis(null);
+      onClose();
+    } catch (error) {
+      console.error('Failed to create post', error);
+    }
   };
 
   return (
@@ -104,7 +120,10 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
                   className="w-full h-full object-cover"
                 />
                 <button
-                  onClick={() => setImageUrl('')}
+                  onClick={() => {
+                    setImageUrl('');
+                    setImageFile(null);
+                  }}
                   className="absolute top-2 right-2 bg-white rounded-full p-1.5 shadow-lg hover:bg-gray-100 transition-colors"
                 >
                   <X className="w-4 h-4 text-gray-700" />
@@ -187,7 +206,7 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
           {/* Publish Button */}
           <button
             onClick={handleSubmit}
-            disabled={!imageUrl || !description || !analysis}
+            disabled={!imageFile || !description || !analysis}
             className="w-full bg-gray-900 text-white rounded-lg px-6 py-3 font-medium hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
             Publish to Feed

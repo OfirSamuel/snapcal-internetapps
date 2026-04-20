@@ -1,14 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { MealCard } from '../components/MealCard';
 import { RecipeOfTheDay } from '../components/RecipeOfTheDay';
 import { CreateMealModal } from '../components/CreateMealModal';
 import type { Meal } from '../types';
-import { initialMeals, recipeOfTheDay } from '../lib/mockData';
+import { recipeOfTheDay } from '../lib/mockData';
+import { fetchPosts } from '../lib/api';
 
 export default function Feed() {
-  const [meals, setMeals] = useState<Meal[]>(initialMeals);
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  useEffect(() => {
+    const loadPosts = async () => {
+      setLoading(true);
+      try {
+        const response = await fetchPosts(page);
+        const newMeals: Meal[] = response.data.map((post: any) => ({
+          id: post._id,
+          userId: post.author?._id || 'unknown',
+          user: {
+            id: post.author?._id || 'unknown',
+            name: post.author?.username || 'Unknown User',
+            username: post.author?.username || 'unknown',
+            avatar: post.author?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Unknown',
+          },
+          imageUrl: `${import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'}${post.imageUrl}`,
+          description: post.description,
+          calories: post.calories,
+          likes: post.likes.length,
+          comments: post.commentsCount,
+          isLiked: false,
+          createdAt: post.createdAt,
+        }));
+        
+        if (newMeals.length === 0) setHasMore(false);
+        setMeals((prev) => (page === 1 ? newMeals : [...prev, ...newMeals]));
+      } catch (error) {
+        console.error('Failed to load posts', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPosts();
+  }, [page]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+          document.documentElement.offsetHeight - 100 &&
+        !loading &&
+        hasMore
+      ) {
+        setPage((prev) => prev + 1);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loading, hasMore]);
 
   const handleLike = (id: string) => {
     setMeals((prevMeals) =>
@@ -67,9 +120,17 @@ export default function Feed() {
 
         {/* Load More */}
         <div className="text-center py-8">
-          <button className="text-gray-500 text-sm font-medium hover:text-lime-500 transition-colors">
-            Load more meals
-          </button>
+          {hasMore ? (
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={loading}
+              className="text-gray-500 text-sm font-medium hover:text-lime-500 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Loading...' : 'Load more meals'}
+            </button>
+          ) : (
+            <p className="text-gray-400 text-sm font-medium">No more meals to load</p>
+          )}
         </div>
       </div>
 
