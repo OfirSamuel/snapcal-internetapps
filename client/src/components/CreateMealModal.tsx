@@ -16,6 +16,7 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
   const [imageUrl, setImageUrl] = useState<string>('');
   const [description, setDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<{
     calories: number;
     protein: number;
@@ -40,14 +41,17 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
 
   const handleAnalyze = async () => {
     if (!description) return;
-    
+
     setAnalyzing(true);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const result = estimateCalories(description);
-    setAnalysis(result);
-    setAnalyzing(false);
+    setAiError(null);
+    try {
+      const result = await estimateCalories(description);
+      setAnalysis(result);
+    } catch {
+      setAiError('AI analysis failed. Please try again.');
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -179,6 +183,13 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
               </>
             )}
           </button>
+
+          {/* AI Error */}
+          {aiError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-6 text-sm text-red-700">
+              {aiError}
+            </div>
+          )}
 
           {/* Results */}
           {analysis && (
