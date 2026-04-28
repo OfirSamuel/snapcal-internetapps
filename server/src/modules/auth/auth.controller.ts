@@ -104,6 +104,8 @@ export const register = async (
       refreshToken,
     });
   } catch (error) {
+    // Temporary debug logging to expose hidden register failures in terminal.
+    console.error('[auth.register] Failed to register user:', error);
     return res.status(500).json({ message: 'Failed to register user' });
   }
 };
