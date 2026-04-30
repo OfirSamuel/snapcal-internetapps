@@ -18,6 +18,14 @@ export const updatePost = (id: string, formData: FormData) => api.put(`/posts/${
 export const deletePost = (id: string) => api.delete(`/posts/${id}`);
 export const toggleLike = (id: string) => api.post(`/posts/${id}/like`);
 export const analyzeWithAI = (description: string) =>
-  api.post<{ calories: number; protein: number; carbs: number; fat: number }>('/ai/analyze', { description });
+  api.post<{ mealName: string; calories: number; protein: number; carbs: number; fat: number }>('/ai/analyze', { description });
+
+export const analyzeImageWithAI = (imageFile: File) => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  return api.post<{ mealName: string; calories: number; protein: number; carbs: number; fat: number }>('/ai/analyze-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
 
 export default api;
