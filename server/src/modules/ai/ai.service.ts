@@ -13,7 +13,7 @@ export const analyzeMeal = async (description: string): Promise<AIAnalysisResult
   }
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
   const prompt = `Estimate the nutritional content of the following meal: "${description}". Return ONLY a JSON object with these exact keys: "calories", "protein", "carbs", "fat". All values must be numbers. No additional text.`;
 

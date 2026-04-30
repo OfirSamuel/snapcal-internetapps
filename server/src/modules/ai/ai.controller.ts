@@ -15,7 +15,10 @@ export const analyzeMealController = async (req: Request, res: Response, next: N
 
     const result = await analyzeMeal(description.trim());
     res.json(result);
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    const message = error?.message || 'AI analysis failed';
+    const status = error?.status || error?.httpCode || 500;
+    console.error('AI analysis error:', message);
+    res.status(status).json({ message });
   }
 };
