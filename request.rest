@@ -1,0 +1,56 @@
+@baseUrl = http://localhost:3000
+@token = REPLACE_WITH_ACCESS_TOKEN
+@postId = REPLACE_WITH_VALID_POST_ID
+
+###
+# 1) Register - run only once
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "mishelle-test2@test.com",
+  "username": "mishelletest2",
+  "password": "123456"
+}
+
+###
+# 2) Login - run this and copy accessToken
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "mishelle-test2@test.com",
+  "username": "mishelletest2",
+  "password": "123456"
+}
+
+###
+# 3) Get Profile - paste accessToken above in @token first
+GET {{baseUrl}}/api/profile/me
+Authorization: Bearer {{token}}
+
+###
+# 4) Update Profile - paste accessToken above in @token first
+PUT {{baseUrl}}/api/profile/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "mishelletestUpdated",
+  "avatarUrl": "https://example.com/avatar.png"
+}
+
+###
+# 5) Create Comment - replace @postId above with real post id
+POST {{baseUrl}}/api/comments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "postId": "{{postId}}",
+  "text": "Hello world"
+}
+
+###
+# 6) Get Comments By Post - replace @postId above with real post id
+GET {{baseUrl}}/api/comments/post/{{postId}}

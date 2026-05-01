@@ -1,7 +1,36 @@
 import { Request, Response, NextFunction } from 'express';
+import { verifyAccessToken } from '../modules/auth/auth.utils';
 
-export const protect = (req: any, res: Response, next: NextFunction) => {
-  // Temporary mock user until Mishelle finishes Auth
-  req.user = { id: '650af3b2e4b0a1a2b3c4d5e6', username: 'ofir_dev' };
-  next();
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+  };
+}
+
+export const protect = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const authorizationHeader = req.headers.authorization;
+
+  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized: missing bearer token' });
+  }
+
+  const token = authorizationHeader.slice('Bearer '.length).trim();
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized: missing bearer token' });
+  }
+
+  try {
+    const payload = verifyAccessToken(token);
+
+    req.user = {
+      id: payload.userId,
+      email: payload.email,
+    };
+
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Unauthorized: invalid or expired token' });
+  }
 };
