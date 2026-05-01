@@ -7,6 +7,7 @@ import postRoutes from './modules/posts/posts.routes';
 import authRoutes from './modules/auth/auth.routes';
 import profileRoutes from './modules/profile/profile.routes';
 import commentsRoutes from './modules/comments/comments.routes';
+import aiRoutes from './modules/ai/ai.routes';
 import './modules/users/users.model'; // Register User schema
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

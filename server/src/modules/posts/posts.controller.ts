@@ -5,12 +5,17 @@ import Post from './posts.model';
 
 export const createPost = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { description, calories } = req.body;
+    const { description, calories, protein, carbs, fat, mealName } = req.body;
     if (!req.file) return res.status(400).json({ message: 'Image is required' });
+    if (!calories) return res.status(400).json({ message: 'Calories is required' });
 
     const post = await Post.create({
-      description,
+      description: description || undefined,
       calories: Number(calories),
+      protein: protein ? Number(protein) : undefined,
+      carbs: carbs ? Number(carbs) : undefined,
+      fat: fat ? Number(fat) : undefined,
+      mealName: mealName || undefined,
       imageUrl: `/uploads/${req.file.filename}`,
       author: req.user.id
     });
