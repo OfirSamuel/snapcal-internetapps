@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { CreateMealModal } from './CreateMealModal';
+import { estimateCalories } from '../lib/aiAnalyzer';
 
 // Mock the API module
 vi.mock('../lib/api', () => ({
@@ -10,12 +11,14 @@ vi.mock('../lib/api', () => ({
 
 // Mock the AI analyzer
 vi.mock('../lib/aiAnalyzer', () => ({
-  estimateCalories: vi.fn(() => ({
-    calories: 500,
-    protein: 35,
-    carbs: 50,
-    fat: 15,
-  })),
+  estimateCalories: vi.fn(() =>
+    Promise.resolve({
+      calories: 500,
+      protein: 35,
+      carbs: 50,
+      fat: 15,
+    })
+  ),
 }));
 
 const defaultProps = {
@@ -60,7 +63,6 @@ describe('CreateMealModal', () => {
   });
 
   test('displays AI calorie/macro estimate after analysis', async () => {
-    vi.useFakeTimers();
     render(<CreateMealModal {...defaultProps} />);
 
     const textarea = screen.getByPlaceholderText(/Grilled chicken/i);
@@ -69,15 +71,10 @@ describe('CreateMealModal', () => {
     const analyzeButton = screen.getByText(/Analyze with AI/i).closest('button')!;
     fireEvent.click(analyzeButton);
 
-    // Advance past the 1500ms setTimeout in handleAnalyze
-    await act(async () => {
-      vi.advanceTimersByTime(1600);
+    await waitFor(() => {
+      expect(screen.getByText(/500/)).toBeInTheDocument();
+      expect(screen.getByText(/35g/)).toBeInTheDocument();
     });
-
-    expect(screen.getByText(/500/)).toBeInTheDocument();
-    expect(screen.getByText(/35g/)).toBeInTheDocument();
-
-    vi.useRealTimers();
   });
 
   test('publish button is disabled until image, description, and analysis are present', () => {
@@ -95,5 +92,21 @@ describe('CreateMealModal', () => {
     const closeButtons = screen.getByText('Create Meal').parentElement!.querySelectorAll('button');
     fireEvent.click(closeButtons[0]);
     expect(onClose).toHaveBeenCalled();
+  });
+
+  test('displays error message when AI analysis fails', async () => {
+    vi.mocked(estimateCalories).mockRejectedValueOnce(new Error('Network Error'));
+
+    render(<CreateMealModal {...defaultProps} />);
+
+    const textarea = screen.getByPlaceholderText(/Grilled chicken/i);
+    fireEvent.change(textarea, { target: { value: 'Some meal' } });
+
+    const analyzeButton = screen.getByText(/Analyze with AI/i).closest('button')!;
+    fireEvent.click(analyzeButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('AI analysis failed. Please try again.')).toBeInTheDocument();
+    });
   });
 });
