@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Newspaper, User, Settings, Pencil, Trash2 } from 'lucide-react';
+import { Newspaper, User, Settings, Pencil, Trash2, PlusCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { updateMyProfile } from '../lib/authApi';
 import { fetchPosts, deletePost } from '../lib/api';
 import { EditPostModal } from '../components/EditPostModal';
+import { CreateMealModal } from '../components/CreateMealModal';
 import type { Meal } from '../types';
 
 const isValidHttpUrl = (value: string): boolean => {
@@ -37,6 +38,7 @@ export default function Profile() {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -130,6 +132,10 @@ export default function Profile() {
     setEditingMeal(null);
   };
 
+  const handleCreateMeal = (newMeal: Meal) => {
+    setPosts((prev) => [newMeal, ...prev]);
+  };
+
   const displayEmail = user?.email ?? '—';
   const displayUsername = user?.username ?? '—';
   const imageSrc = user?.avatarUrl || user?.avatar || null;
@@ -206,6 +212,13 @@ export default function Profile() {
             <Newspaper className="w-5 h-5" />
             Feed
           </Link>
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 font-medium hover:bg-lime-50 hover:text-lime-600 transition-colors"
+          >
+            <PlusCircle className="w-5 h-5" />
+            Create Meal
+          </button>
           <Link
             to="/profile"
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 font-medium hover:bg-lime-50 hover:text-lime-600 transition-colors bg-lime-50 text-lime-600"
@@ -487,6 +500,22 @@ export default function Profile() {
           onSave={handleEditSave}
         />
       )}
+
+      {/* Create Meal Modal */}
+      <CreateMealModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSubmit={handleCreateMeal}
+      />
+
+      {/* Mobile FAB - Create Meal */}
+      <button
+        onClick={() => setCreateModalOpen(true)}
+        className="md:hidden fixed bottom-6 right-6 z-40 bg-lime-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:bg-lime-600 transition-colors"
+        aria-label="Create Meal"
+      >
+        <PlusCircle className="w-7 h-7" />
+      </button>
     </div>
   );
 }
