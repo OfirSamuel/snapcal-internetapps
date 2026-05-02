@@ -31,7 +31,11 @@ export interface Comment {
 
 export interface Recipe {
   title: string;
-  imageUrl: string;
   calories: number;
   cookTime: string;
+  protein: number;
+  carbs: number;
+  fat: number;
+  ingredients: string[];
+  instructions: string[];
 }

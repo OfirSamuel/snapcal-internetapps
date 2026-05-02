@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { PlusCircle, Newspaper } from 'lucide-react';
 import { MealCard } from '../components/MealCard';
 import { RecipeOfTheDay } from '../components/RecipeOfTheDay';
+import { RecipeDetailModal } from '../components/RecipeDetailModal';
 import { CreateMealModal } from '../components/CreateMealModal';
-import type { Meal } from '../types';
-import { recipeOfTheDay } from '../lib/mockData';
-import { fetchPosts } from '../lib/api';
+import type { Meal, Recipe } from '../types';
+import { fetchPosts, fetchRecipeOfTheDay } from '../lib/api';
 
 export default function Feed() {
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -13,6 +13,14 @@ export default function Feed() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [recipeModalOpen, setRecipeModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchRecipeOfTheDay()
+      .then((res) => setRecipe(res.data))
+      .catch((err) => console.error('Failed to load recipe of the day', err));
+  }, []);
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -123,7 +131,9 @@ export default function Feed() {
       <main className="flex-1 pb-20 md:pb-0 pt-16 md:pt-0">
         <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Recipe of the Day */}
-        <RecipeOfTheDay recipe={recipeOfTheDay} />
+        {recipe && (
+          <RecipeOfTheDay recipe={recipe} onClick={() => setRecipeModalOpen(true)} />
+        )}
 
         {/* Feed */}
         <div className="space-y-4">
@@ -160,6 +170,11 @@ export default function Feed() {
         onClose={() => setCreateModalOpen(false)}
         onSubmit={handleCreateMeal}
       />
+
+      {/* Recipe Detail Modal */}
+      {recipeModalOpen && recipe && (
+        <RecipeDetailModal recipe={recipe} onClose={() => setRecipeModalOpen(false)} />
+      )}
     </div>
   );
 }

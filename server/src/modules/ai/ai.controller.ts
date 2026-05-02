@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { analyzeMeal, analyzeMealImage } from './ai.service';
+import { analyzeMeal, analyzeMealImage, generateRecipeOfTheDay } from './ai.service';
+import { Recipe } from './recipe.model';
 
 export const analyzeMealController = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -41,5 +42,29 @@ export const analyzeImageController = async (req: Request, res: Response, next: 
     const status = error?.status || error?.httpCode || 500;
     console.error('AI image analysis error:', message);
     res.status(status).json({ message });
+  }
+};
+
+export const getRecipeOfTheDayController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    const existing = await Recipe.findOne({ generatedDate: today }).lean();
+    if (existing) {
+      return res.json(existing);
+    }
+
+    const generated = await generateRecipeOfTheDay(today);
+
+    const saved = await Recipe.create({
+      ...generated,
+      generatedDate: today,
+    });
+
+    res.json(saved.toObject());
+  } catch (error: any) {
+    const message = error?.message || 'Failed to get recipe of the day';
+    console.error('Recipe of the day error:', message);
+    res.status(500).json({ message });
   }
 };

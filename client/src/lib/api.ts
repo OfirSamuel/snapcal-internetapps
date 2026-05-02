@@ -43,4 +43,16 @@ export const analyzeImageWithAI = (imageFile: File) => {
   });
 };
 
+export const fetchRecipeOfTheDay = () =>
+  api.get<{
+    title: string;
+    calories: number;
+    cookTime: string;
+    protein: number;
+    carbs: number;
+    fat: number;
+    ingredients: string[];
+    instructions: string[];
+  }>('/ai/recipe-of-the-day');
+
 export default api;
