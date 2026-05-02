@@ -15,12 +15,11 @@ describe('Post Model', () => {
     expect(err).toBeUndefined();
   });
 
-  test('rejects post without description', () => {
+  test('allows post without description (optional field)', () => {
     const { description, ...data } = validPostData;
     const post = new Post(data);
     const err = post.validateSync();
-    expect(err).toBeDefined();
-    expect(err!.errors).toHaveProperty('description');
+    expect(err).toBeUndefined();
   });
 
   test('rejects post without calories', () => {

@@ -2,7 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import swaggerUi from 'swagger-ui-express';
 import { errorHandler } from './middleware/error.middleware';
+import { swaggerSpec } from './docs/swagger';
 import postRoutes from './modules/posts/posts.routes';
 import authRoutes from './modules/auth/auth.routes';
 import profileRoutes from './modules/profile/profile.routes';
@@ -19,6 +21,7 @@ app.use(express.json());
 
 // Serve static files from the server root uploads directory
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/comments', commentsRoutes);
