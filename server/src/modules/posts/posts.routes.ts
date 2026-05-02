@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { createPost, getPosts, updatePost, deletePost, toggleLike } from './posts.controller';
+import { createPost, getPosts, getPostById, updatePost, deletePost, toggleLike } from './posts.controller';
 import { protect } from '../../middleware/auth.middleware';
 
 const router = express.Router();
@@ -24,6 +24,7 @@ router.route('/')
   .get(getPosts);
 
 router.route('/:id')
+  .get(getPostById)
   .put(protect, upload.single('image'), updatePost)
   .delete(protect, deletePost);
 

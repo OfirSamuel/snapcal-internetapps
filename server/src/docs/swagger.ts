@@ -381,6 +381,17 @@ const swaggerDefinition: swaggerJSDoc.SwaggerDefinition = {
       },
     },
     '/api/posts/{id}': {
+      get: {
+        tags: ['Posts'],
+        summary: 'Get a single post by id',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } },
+          '404': { description: 'Not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/Message' } } } },
+        },
+      },
       put: {
         tags: ['Posts'],
         summary: 'Update a post (author only)',

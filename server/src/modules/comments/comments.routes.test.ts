@@ -9,6 +9,17 @@ const registerAndLogin = async (email: string, username: string, password: strin
   return loginRes.body.accessToken as string;
 };
 
+const createTestPost = async (token: string) => {
+  const res = await request(app)
+    .post('/api/posts')
+    .set('Authorization', `Bearer ${token}`)
+    .field('description', 'Post for comments')
+    .field('calories', '100')
+    .attach('image', Buffer.from('fake-image'), 'meal.jpg');
+  expect(res.status).toBe(201);
+  return res.body._id as string;
+};
+
 describe('Comments Routes', () => {
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = 'test_access_secret';
@@ -28,7 +39,7 @@ describe('Comments Routes', () => {
 
   test('POST /api/comments returns 201 for authenticated valid comment', async () => {
     const token = await registerAndLogin('comment@test.com', 'commentuser', '123456');
-    const postId = new mongoose.Types.ObjectId().toString();
+    const postId = await createTestPost(token);
 
     const res = await request(app)
       .post('/api/comments')
@@ -41,6 +52,10 @@ describe('Comments Routes', () => {
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('postId', postId);
     expect(res.body).toHaveProperty('text', 'Hello world');
+
+    const postCheck = await request(app).get(`/api/posts/${postId}`);
+    expect(postCheck.status).toBe(200);
+    expect(postCheck.body.commentsCount).toBe(1);
   });
 
   test('POST /api/comments returns 401 when token is missing', async () => {
@@ -67,9 +82,22 @@ describe('Comments Routes', () => {
     expect(res.status).toBe(400);
   });
 
+  test('POST /api/comments returns 404 when post does not exist', async () => {
+    const token = await registerAndLogin('nopost@test.com', 'nopostuser', '123456');
+    const postId = new mongoose.Types.ObjectId().toString();
+
+    const res = await request(app)
+      .post('/api/comments')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ postId, text: 'Hello' });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ message: 'Post not found' });
+  });
+
   test('POST /api/comments returns 400 for empty text', async () => {
     const token = await registerAndLogin('emptytext@test.com', 'emptytextuser', '123456');
-    const postId = new mongoose.Types.ObjectId().toString();
+    const postId = await createTestPost(token);
 
     const res = await request(app)
       .post('/api/comments')
@@ -84,7 +112,7 @@ describe('Comments Routes', () => {
 
   test('GET /api/comments/post/:postId returns comments sorted newest first', async () => {
     const token = await registerAndLogin('sort@test.com', 'sortuser', '123456');
-    const postId = new mongoose.Types.ObjectId().toString();
+    const postId = await createTestPost(token);
 
     await request(app)
       .post('/api/comments')

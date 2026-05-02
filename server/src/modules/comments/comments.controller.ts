@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import Comment from './comments.model';
+import Post from '../posts/posts.model';
 
 interface CreateCommentBody {
   postId?: string;
@@ -36,11 +37,19 @@ export const createComment = async (
       return res.status(400).json({ message: 'text is required' });
     }
 
+    const postObjectId = new mongoose.Types.ObjectId(postId);
+    const postExists = await Post.exists({ _id: postObjectId });
+    if (!postExists) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
     const comment = await Comment.create({
-      postId: new mongoose.Types.ObjectId(postId),
+      postId: postObjectId,
       author: new mongoose.Types.ObjectId(authorId),
       text: normalizedText,
     });
+
+    await Post.findByIdAndUpdate(postObjectId, { $inc: { commentsCount: 1 } });
 
     const populatedComment = await Comment.findById(comment._id).populate('author', 'username avatar avatarUrl');
 
