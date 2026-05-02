@@ -32,6 +32,9 @@ export const updatePost = (id: string, formData: FormData) => api.put(`/posts/${
 });
 export const deletePost = (id: string) => api.delete(`/posts/${id}`);
 export const toggleLike = (id: string) => api.post(`/posts/${id}/like`);
+export const fetchCommentsByPost = (postId: string) => api.get(`/comments/post/${postId}`);
+export const createComment = (postId: string, text: string) =>
+  api.post('/comments', { postId, text });
 export const analyzeWithAI = (description: string) =>
   api.post<{ mealName: string; calories: number; protein: number; carbs: number; fat: number }>('/ai/analyze', { description });
 
