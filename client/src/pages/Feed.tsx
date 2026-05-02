@@ -6,10 +6,13 @@ import { RecipeOfTheDay } from '../components/RecipeOfTheDay';
 import { RecipeDetailModal } from '../components/RecipeDetailModal';
 import { CreateMealModal } from '../components/CreateMealModal';
 import type { Meal, Recipe } from '../types';
-import { fetchPosts, fetchRecipeOfTheDay } from '../lib/api';
+import { fetchPosts, fetchRecipeOfTheDay, toggleLike } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Feed() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentUserId = user?._id || user?.id || '';
   const [meals, setMeals] = useState<Meal[]>([]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -49,7 +52,7 @@ export default function Feed() {
           calories: post.calories,
           likes: post.likes.length,
           comments: post.commentsCount,
-          isLiked: false,
+          isLiked: Array.isArray(post.likes) && post.likes.includes(currentUserId),
           createdAt: post.createdAt,
         }});
 
@@ -80,7 +83,8 @@ export default function Feed() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [loading, hasMore]);
 
-  const handleLike = (id: string) => {
+  const handleLike = async (id: string) => {
+    // Optimistic update
     setMeals((prevMeals) =>
       prevMeals.map((meal) =>
         meal.id === id
@@ -92,6 +96,28 @@ export default function Feed() {
           : meal
       )
     );
+    try {
+      const res = await toggleLike(id);
+      const { likes, isLiked } = res.data;
+      setMeals((prevMeals) =>
+        prevMeals.map((meal) =>
+          meal.id === id ? { ...meal, likes, isLiked } : meal
+        )
+      );
+    } catch {
+      // Revert on failure
+      setMeals((prevMeals) =>
+        prevMeals.map((meal) =>
+          meal.id === id
+            ? {
+                ...meal,
+                isLiked: !meal.isLiked,
+                likes: meal.isLiked ? meal.likes - 1 : meal.likes + 1,
+              }
+            : meal
+        )
+      );
+    }
   };
 
   const handleCommentClick = (id: string) => {
