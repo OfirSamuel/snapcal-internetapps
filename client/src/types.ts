@@ -21,12 +21,21 @@ export interface Meal {
   createdAt: string;
 }
 
-export interface Comment {
-  id: string;
-  mealId: string;
-  user: User;
+export interface PostCommentAuthor {
+  _id?: string;
+  username?: string;
+  email?: string;
+  avatar?: string;
+  avatarUrl?: string;
+}
+
+export interface PostComment {
+  _id: string;
+  postId: string;
+  author: PostCommentAuthor;
   text: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Recipe {
