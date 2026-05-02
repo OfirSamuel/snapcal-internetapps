@@ -20,7 +20,8 @@ export const createPost = async (req: any, res: Response, next: NextFunction) =>
       author: req.user.id
     });
 
-    res.status(201).json(post);
+    const populated = await post.populate('author', 'username avatar');
+    res.status(201).json(populated);
   } catch (error) {
     next(error);
   }
