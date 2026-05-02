@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createPost, getPosts, updatePost, deletePost, toggleLike } from './posts.controller';
+import { createPost, getPosts, getPostById, updatePost, deletePost, toggleLike } from './posts.controller';
 import Post from './posts.model';
 import fs from 'fs';
 
@@ -19,16 +19,20 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+const mockCreatedDoc = (populated: Record<string, unknown>) => ({
+  populate: jest.fn().mockResolvedValue(populated),
+});
+
 describe('createPost', () => {
   test('returns 201 with the created post on valid input', async () => {
-    const postData = {
+    const populated = {
       _id: 'post123',
       description: 'Test meal',
       calories: 500,
       imageUrl: '/uploads/1234-image.jpg',
       author: 'user123',
     };
-    (Post.create as jest.Mock).mockResolvedValue(postData);
+    (Post.create as jest.Mock).mockResolvedValue(mockCreatedDoc(populated));
 
     const req = {
       body: { description: 'Test meal', calories: '500' },
@@ -42,11 +46,15 @@ describe('createPost', () => {
     expect(Post.create).toHaveBeenCalledWith({
       description: 'Test meal',
       calories: 500,
+      protein: undefined,
+      carbs: undefined,
+      fat: undefined,
+      mealName: undefined,
       imageUrl: '/uploads/1234-image.jpg',
       author: 'user123',
     });
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith(postData);
+    expect(res.json).toHaveBeenCalledWith(populated);
   });
 
   test('returns 400 when no image file is attached', async () => {
@@ -64,7 +72,7 @@ describe('createPost', () => {
   });
 
   test('casts calories from string to number', async () => {
-    (Post.create as jest.Mock).mockResolvedValue({});
+    (Post.create as jest.Mock).mockResolvedValue(mockCreatedDoc({}));
 
     const req = {
       body: { description: 'Test', calories: '750' },
@@ -118,7 +126,7 @@ describe('getPosts', () => {
     expect(mockQuery.sort).toHaveBeenCalledWith({ createdAt: -1 });
     expect(mockQuery.skip).toHaveBeenCalledWith(5);
     expect(mockQuery.limit).toHaveBeenCalledWith(5);
-    expect(mockQuery.populate).toHaveBeenCalledWith('author', 'username avatar');
+    expect(mockQuery.populate).toHaveBeenCalledWith('author', 'username avatar avatarUrl');
     expect(res.json).toHaveBeenCalledWith([]);
   });
 
@@ -162,6 +170,37 @@ describe('getPosts', () => {
     await getPosts(req, res, mockNext);
 
     expect(mockNext).toHaveBeenCalledWith(dbError);
+  });
+});
+
+describe('getPostById', () => {
+  test('returns post when found', async () => {
+    const doc = { _id: 'p1', description: 'Meal' };
+    (Post.findById as jest.Mock).mockReturnValue({
+      populate: jest.fn().mockResolvedValue(doc),
+    });
+
+    const req = { params: { id: 'p1' } } as any;
+    const res = mockResponse();
+
+    await getPostById(req, res, mockNext);
+
+    expect(Post.findById).toHaveBeenCalledWith('p1');
+    expect(res.json).toHaveBeenCalledWith(doc);
+  });
+
+  test('returns 404 when post does not exist', async () => {
+    (Post.findById as jest.Mock).mockReturnValue({
+      populate: jest.fn().mockResolvedValue(null),
+    });
+
+    const req = { params: { id: 'missing' } } as any;
+    const res = mockResponse();
+
+    await getPostById(req, res, mockNext);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Post not found' });
   });
 });
 

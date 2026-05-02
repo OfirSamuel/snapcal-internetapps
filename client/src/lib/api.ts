@@ -24,6 +24,7 @@ export const fetchPosts = (page: number, author?: string) => {
   if (author) params.set('author', author);
   return api.get(`/posts?${params.toString()}`);
 };
+export const fetchPostById = (id: string) => api.get(`/posts/${id}`);
 export const createPost = (formData: FormData) => api.post('/posts', formData, {
   headers: { 'Content-Type': 'multipart/form-data' }
 });

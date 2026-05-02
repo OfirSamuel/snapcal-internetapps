@@ -27,6 +27,16 @@ export const createPost = async (req: any, res: Response, next: NextFunction) =>
   }
 };
 
+export const getPostById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const post = await Post.findById(req.params.id).populate('author', 'username avatar avatarUrl');
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    res.json(post);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getPosts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = parseInt(req.query.page as string) || 1;

@@ -5,6 +5,7 @@ import app from '../../app';
 jest.mock('./posts.controller', () => ({
   createPost: (req: any, res: any) => res.status(201).json({ _id: 'new-post' }),
   getPosts: (req: any, res: any) => res.status(200).json([]),
+  getPostById: (req: any, res: any) => res.status(200).json({ _id: req.params.id }),
   updatePost: (req: any, res: any) => res.status(200).json({ _id: req.params.id, description: 'updated' }),
   deletePost: (req: any, res: any) => res.status(200).json({ message: 'Post deleted' }),
   toggleLike: (req: any, res: any) => res.status(200).json({ likes: 1, isLiked: true }),
@@ -29,6 +30,14 @@ describe('Posts Routes', () => {
     test('forwards page query param', async () => {
       const res = await request(app).get('/api/posts?page=2&limit=5');
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe('GET /api/posts/:id', () => {
+    test('returns 200 for a post id', async () => {
+      const res = await request(app).get('/api/posts/post1');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ _id: 'post1' });
     });
   });
 

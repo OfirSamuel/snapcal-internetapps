@@ -5,7 +5,8 @@ import app from './app';
 jest.mock('./modules/posts/posts.controller', () => ({
   createPost: (req: any, res: any) => res.status(201).json({ id: '123' }),
   getPosts: (req: any, res: any) => res.status(200).json([]),
-  updatePost: (req: any, res: any) => res.status(200).json({ id: req.params.id }),
+  getPostById: (req: any, res: any) => res.status(200).json({ _id: req.params.id }),
+  updatePost: (req: any, res: any) => res.status(200).json({ _id: req.params.id }),
   deletePost: (req: any, res: any) => res.status(200).json({ message: 'Post deleted' }),
   toggleLike: (req: any, res: any) => res.status(200).json({ likes: 1, isLiked: true }),
 }));
@@ -29,6 +30,12 @@ describe('App Integration', () => {
     const res = await request(app).get('/api/posts');
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
+  });
+
+  test('/api/posts/:id GET route should be defined', async () => {
+    const res = await request(app).get('/api/posts/abc123');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ _id: 'abc123' });
   });
 
   test('/api/posts POST route should be defined', async () => {
@@ -63,5 +70,11 @@ describe('App Integration', () => {
     const res = await request(app).get('/uploads/nonexistent.jpg');
     // Static middleware returns 404 for missing files, not 500
     expect([200, 304, 404]).toContain(res.status);
+  });
+
+  test('/api-docs GET serves Swagger UI (HTML)', async () => {
+    const res = await request(app).get('/api-docs/');
+    expect(res.status).toBe(200);
+    expect(res.type).toMatch(/html/);
   });
 });

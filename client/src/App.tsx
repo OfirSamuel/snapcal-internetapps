@@ -3,6 +3,7 @@ import Feed from './pages/Feed'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
+import PostComments from './pages/PostComments'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <Routes>
         <Route path="/" element={<Feed />} />
+        <Route path="/posts/:postId/comments" element={<PostComments />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route

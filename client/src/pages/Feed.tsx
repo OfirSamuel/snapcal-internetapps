@@ -1,22 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, Newspaper, User } from 'lucide-react';
 import { MealCard } from '../components/MealCard';
 import { RecipeOfTheDay } from '../components/RecipeOfTheDay';
 import { RecipeDetailModal } from '../components/RecipeDetailModal';
 import { CreateMealModal } from '../components/CreateMealModal';
-import { CommentsModal } from '../components/CommentsModal';
 import type { Meal, Recipe } from '../types';
 import { fetchPosts, fetchRecipeOfTheDay } from '../lib/api';
 
 export default function Feed() {
+  const navigate = useNavigate();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [commentsModalOpen, setCommentsModalOpen] = useState(false);
-  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
 
@@ -97,16 +95,7 @@ export default function Feed() {
   };
 
   const handleCommentClick = (id: string) => {
-    setSelectedMealId(id);
-    setCommentsModalOpen(true);
-  };
-
-  const handleCommentAdded = (postId: string) => {
-    setMeals((prevMeals) =>
-      prevMeals.map((meal) =>
-        meal.id === postId ? { ...meal, comments: meal.comments + 1 } : meal
-      )
-    );
+    navigate(`/posts/${id}/comments`);
   };
 
   const handleCreateMeal = (newMeal: Meal) => {
@@ -155,6 +144,13 @@ export default function Feed() {
               onCommentClick={handleCommentClick}
             />
           ))}
+
+          {!loading && !hasMore && meals.length > 0 && (
+            <p className="text-center text-sm text-gray-500 py-6">No more meals to load</p>
+          )}
+          {!loading && !hasMore && meals.length === 0 && (
+            <p className="text-center text-sm text-gray-500 py-6">No meals to show yet.</p>
+          )}
         </div>
       </main>
 
@@ -162,13 +158,6 @@ export default function Feed() {
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         onSubmit={handleCreateMeal}
-      />
-
-      <CommentsModal
-        isOpen={commentsModalOpen}
-        postId={selectedMealId}
-        onClose={() => setCommentsModalOpen(false)}
-        onCommentAdded={handleCommentAdded}
       />
 
       {recipeModalOpen && recipe && (
