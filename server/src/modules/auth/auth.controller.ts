@@ -17,6 +17,7 @@ interface RegisterBody {
 
 interface LoginBody {
   email?: string;
+  username?: string;
   password?: string;
 }
 
@@ -76,26 +77,36 @@ export const register = async (
       return res.status(409).json({ message: 'User with this email or username already exists' });
     }
 
+    const passwordHash = await hashPassword(password);
+
     const createdUser = await User.create({
       username: normalizedUsername,
       email: normalizedEmail,
+      passwordHash,
       avatar: '',
     });
 
-    const passwordHash = await hashPassword(password);
-    const rawCreatedUser = await User.collection.findOne({ _id: createdUser._id });
+    const baseUser: RawUserDoc = {
+      _id: createdUser._id as mongoose.Types.ObjectId,
+      username: createdUser.username,
+      email: createdUser.email,
+      avatar: createdUser.avatar,
+      passwordHash: createdUser.passwordHash,
+    };
 
-    if (!rawCreatedUser) {
+    let accessToken: string;
+    let refreshToken: string;
+    try {
+      accessToken = signAccessToken(buildTokenPayload(baseUser));
+      refreshToken = signRefreshToken(buildTokenPayload(baseUser));
+    } catch {
+      await User.deleteOne({ _id: createdUser._id });
       return res.status(500).json({ message: 'Failed to create user account' });
     }
 
-    const baseUser = rawCreatedUser as RawUserDoc;
-    const accessToken = signAccessToken(buildTokenPayload(baseUser));
-    const refreshToken = signRefreshToken(buildTokenPayload(baseUser));
-
-    await User.collection.updateOne(
+    await User.updateOne(
       { _id: createdUser._id },
-      { $set: { passwordHash, refreshToken } }
+      { $set: { refreshToken } }
     );
 
     return res.status(201).json({
@@ -110,14 +121,21 @@ export const register = async (
 
 export const login = async (req: Request<unknown, unknown, LoginBody>, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, username, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'email and password are required' });
+    if ((!email && !username) || !password) {
+      return res.status(400).json({ message: 'email or username, and password are required' });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-    const rawUser = (await User.collection.findOne({ email: normalizedEmail })) as RawUserDoc | null;
+    let rawUser: RawUserDoc | null = null;
+
+    if (email) {
+      const normalizedEmail = email.toLowerCase().trim();
+      rawUser = (await User.collection.findOne({ email: normalizedEmail })) as RawUserDoc | null;
+    } else if (username) {
+      const normalizedUsername = username.trim();
+      rawUser = (await User.collection.findOne({ username: normalizedUsername })) as RawUserDoc | null;
+    }
 
     if (!rawUser || !rawUser.passwordHash) {
       return res.status(401).json({ message: 'Invalid credentials' });

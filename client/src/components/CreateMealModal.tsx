@@ -3,7 +3,7 @@ import { X, Loader2, Camera } from 'lucide-react';
 import { estimateCaloriesFromImage } from '../lib/aiAnalyzer';
 import type { AIResult } from '../lib/aiAnalyzer';
 import type { Meal } from '../types';
-import { currentUser } from '../lib/mockData';
+import { useAuth } from '../context/AuthContext';
 import { createPost } from '../lib/api';
 
 interface CreateMealModalProps {
@@ -13,6 +13,7 @@ interface CreateMealModalProps {
 }
 
 export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalProps) {
+  const { user } = useAuth();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [description, setDescription] = useState('');
@@ -95,8 +96,13 @@ export function CreateMealModal({ isOpen, onClose, onSubmit }: CreateMealModalPr
 
       const newMeal: Meal = {
         id: post._id,
-        userId: currentUser.id,
-        user: currentUser,
+        userId: user?._id || user?.id || '',
+        user: {
+          id: user?._id || user?.id || '',
+          name: user?.username || 'Unknown',
+          username: user?.username || 'unknown',
+          avatar: user?.avatarUrl || user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Unknown',
+        },
         imageUrl: `${import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'}${post.imageUrl}`,
         description: post.description || analysis.mealName,
         calories: post.calories,

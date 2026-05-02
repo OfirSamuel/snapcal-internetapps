@@ -92,6 +92,24 @@ describe('Auth Routes', () => {
     expect(res.status).toBe(401);
   });
 
+  test('POST /api/auth/login returns 200 when logging in with username', async () => {
+    await request(app).post('/api/auth/register').send({
+      email: 'usernamelogin@test.com',
+      username: 'usernameloginuser',
+      password: '123456',
+    });
+
+    const res = await request(app).post('/api/auth/login').send({
+      username: 'usernameloginuser',
+      password: '123456',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('accessToken');
+    expect(res.body).toHaveProperty('refreshToken');
+    expect(res.body.user.username).toBe('usernameloginuser');
+  });
+
   test('POST /api/auth/refresh returns new tokens for valid refresh token', async () => {
     const registerRes = await request(app).post('/api/auth/register').send({
       email: 'refresh@test.com',

@@ -1,33 +1,31 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import Feed from './Feed';
 
 // Mock the API
 const mockFetchPosts = vi.fn();
+const mockFetchRecipeOfTheDay = vi.fn();
 vi.mock('../lib/api', () => ({
   fetchPosts: (...args: unknown[]) => mockFetchPosts(...args),
+  fetchRecipeOfTheDay: () => mockFetchRecipeOfTheDay(),
   createPost: vi.fn(),
   default: { get: vi.fn(), post: vi.fn() },
 }));
 
-// Mock the mock data
-vi.mock('../lib/mockData', () => ({
-  currentUser: {
-    id: 'user-1',
-    name: 'Test User',
-    username: '@test',
-    avatar: 'https://example.com/avatar.png',
-  },
-  recipeOfTheDay: {
-    title: 'Test Recipe',
-    imageUrl: 'https://example.com/recipe.jpg',
-    calories: 300,
-    cookTime: '10 min',
-  },
-}));
+const mockRecipe = {
+  title: 'Test Recipe',
+  calories: 300,
+  cookTime: '10 min',
+  protein: 25,
+  carbs: 35,
+  fat: 10,
+  ingredients: ['ingredient 1', 'ingredient 2'],
+  instructions: ['step 1', 'step 2'],
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockFetchRecipeOfTheDay.mockResolvedValue({ data: mockRecipe });
 });
 
 describe('Feed', () => {
@@ -36,8 +34,39 @@ describe('Feed', () => {
 
     render(<Feed />);
 
-    expect(screen.getByText('SnapCal')).toBeInTheDocument();
-    expect(screen.getByText('Test Recipe')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument();
+    });
+    expect(screen.getAllByText('SnapCal').length).toBeGreaterThan(0);
+  });
+
+  test('opens recipe detail modal on click', async () => {
+    mockFetchPosts.mockResolvedValue({ data: [] });
+
+    render(<Feed />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Test Recipe'));
+
+    await waitFor(() => {
+      expect(screen.getByText('ingredient 1')).toBeInTheDocument();
+      expect(screen.getByText('step 1')).toBeInTheDocument();
+    });
+  });
+
+  test('hides recipe section when API fails', async () => {
+    mockFetchRecipeOfTheDay.mockRejectedValue(new Error('API error'));
+    mockFetchPosts.mockResolvedValue({ data: [] });
+
+    render(<Feed />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('SnapCal').length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText('Recipe of the Day')).not.toBeInTheDocument();
   });
 
   test('renders meal cards after successful fetch', async () => {
@@ -74,13 +103,14 @@ describe('Feed', () => {
   });
 
   test('handles API error gracefully without crashing', async () => {
+    mockFetchRecipeOfTheDay.mockRejectedValue(new Error('Recipe error'));
     mockFetchPosts.mockRejectedValue(new Error('Network error'));
 
     render(<Feed />);
 
     // Should not crash — header still visible
     await waitFor(() => {
-      expect(screen.getByText('SnapCal')).toBeInTheDocument();
+      expect(screen.getAllByText('SnapCal').length).toBeGreaterThan(0);
     });
   });
 });

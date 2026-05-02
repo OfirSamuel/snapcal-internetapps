@@ -1,19 +1,24 @@
-import { Clock, Flame } from 'lucide-react';
+import { Clock, Flame, UtensilsCrossed } from 'lucide-react';
 import type { Recipe } from '../types';
 
 interface RecipeOfTheDayProps {
   recipe: Recipe;
+  onClick: () => void;
 }
 
-export function RecipeOfTheDay({ recipe }: RecipeOfTheDayProps) {
+export function RecipeOfTheDay({ recipe, onClick }: RecipeOfTheDayProps) {
   return (
-    <div className="bg-gradient-to-r from-lime-500 to-green-500 rounded-xl overflow-hidden mb-6 shadow-md cursor-pointer hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+    <div
+      className="bg-gradient-to-r from-lime-500 to-green-500 rounded-xl overflow-hidden mb-6 shadow-md cursor-pointer hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+    >
       <div className="flex items-center gap-4 p-4">
-        <img
-          src={recipe.imageUrl}
-          alt={recipe.title}
-          className="w-20 h-20 rounded-lg object-cover bg-white/20"
-        />
+        <div className="w-20 h-20 rounded-lg bg-white/20 flex items-center justify-center">
+          <UtensilsCrossed className="w-10 h-10 text-white" />
+        </div>
         <div className="flex-1 text-white">
           <p className="text-xs font-medium uppercase tracking-wide opacity-90 mb-1">
             Recipe of the Day
