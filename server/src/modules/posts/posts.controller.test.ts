@@ -19,16 +19,20 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+const mockCreatedDoc = (populated: Record<string, unknown>) => ({
+  populate: jest.fn().mockResolvedValue(populated),
+});
+
 describe('createPost', () => {
   test('returns 201 with the created post on valid input', async () => {
-    const postData = {
+    const populated = {
       _id: 'post123',
       description: 'Test meal',
       calories: 500,
       imageUrl: '/uploads/1234-image.jpg',
       author: 'user123',
     };
-    (Post.create as jest.Mock).mockResolvedValue(postData);
+    (Post.create as jest.Mock).mockResolvedValue(mockCreatedDoc(populated));
 
     const req = {
       body: { description: 'Test meal', calories: '500' },
@@ -42,11 +46,15 @@ describe('createPost', () => {
     expect(Post.create).toHaveBeenCalledWith({
       description: 'Test meal',
       calories: 500,
+      protein: undefined,
+      carbs: undefined,
+      fat: undefined,
+      mealName: undefined,
       imageUrl: '/uploads/1234-image.jpg',
       author: 'user123',
     });
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith(postData);
+    expect(res.json).toHaveBeenCalledWith(populated);
   });
 
   test('returns 400 when no image file is attached', async () => {
@@ -64,7 +72,7 @@ describe('createPost', () => {
   });
 
   test('casts calories from string to number', async () => {
-    (Post.create as jest.Mock).mockResolvedValue({});
+    (Post.create as jest.Mock).mockResolvedValue(mockCreatedDoc({}));
 
     const req = {
       body: { description: 'Test', calories: '750' },
