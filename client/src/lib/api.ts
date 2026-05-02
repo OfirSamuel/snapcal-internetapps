@@ -1,7 +1,22 @@
 import axios from 'axios';
+import { getAccessToken } from './authStorage';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+});
+
+const authPathsWithoutBearer = ['/auth/register', '/auth/login', '/auth/google', '/auth/refresh'];
+
+api.interceptors.request.use((config) => {
+  const url = typeof config.url === 'string' ? config.url : '';
+  const skipAuth = authPathsWithoutBearer.some((path) => url.includes(path));
+  const token = getAccessToken();
+
+  if (!skipAuth && token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
 });
 
 export const fetchPosts = (page: number, author?: string) => {

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Upload, Loader2, Camera } from 'lucide-react';
+import { X, Loader2, Camera } from 'lucide-react';
 import { estimateCaloriesFromImage } from '../lib/aiAnalyzer';
 import type { AIResult } from '../lib/aiAnalyzer';
 import type { Meal } from '../types';
