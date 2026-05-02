@@ -9,18 +9,24 @@ interface MealCardProps {
 }
 
 export function MealCard({ meal, onLike, onCommentClick }: MealCardProps) {
+  const displayName = meal.user.name || meal.user.username || 'Unknown User';
+  const username = meal.user.username || '';
+  const avatarSrc =
+    meal.user.avatar ||
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(username || displayName)}`;
+
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 mb-4">
       {/* Header */}
       <div className="flex items-center gap-3 p-4">
         <img
-          src={meal.user.avatar}
-          alt={meal.user.name}
+          src={avatarSrc}
+          alt={displayName}
           className="w-10 h-10 rounded-full"
         />
         <div className="flex-1">
-          <p className="font-medium text-gray-900">{meal.user.name}</p>
-          <p className="text-sm text-gray-500">{meal.user.username}</p>
+          <p className="font-medium text-gray-900">{displayName}</p>
+          <p className="text-sm text-gray-500">{username}</p>
         </div>
         <p className="text-xs text-gray-400">
           {formatDistanceToNow(new Date(meal.createdAt), { addSuffix: true })}
@@ -85,7 +91,7 @@ export function MealCard({ meal, onLike, onCommentClick }: MealCardProps) {
 
         {/* Description */}
         <p className="text-sm text-gray-700 leading-relaxed">
-          <span className="font-medium text-gray-900">{meal.user.username}</span>{' '}
+          <span className="font-medium text-gray-900">{username}</span>{' '}
           {meal.description}
         </p>
       </div>
