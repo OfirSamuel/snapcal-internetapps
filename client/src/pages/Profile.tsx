@@ -1,9 +1,13 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, useCallback, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Newspaper, User } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { updateMyProfile } from '../lib/authApi';
+import { fetchPosts, deletePost } from '../lib/api';
+import { MealCard } from '../components/MealCard';
+import { EditPostModal } from '../components/EditPostModal';
+import type { Meal } from '../types';
 
 const isValidHttpUrl = (value: string): boolean => {
   try {
@@ -26,6 +30,13 @@ export default function Profile() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Posts state
+  const [posts, setPosts] = useState<Meal[]>([]);
+  const [postsPage, setPostsPage] = useState(1);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
+
   useEffect(() => {
     void (async () => {
       setLoadingProfile(true);
@@ -43,6 +54,80 @@ export default function Profile() {
       setAvatarUrl(user.avatarUrl ?? '');
     }
   }, [user]);
+
+  const loadPosts = useCallback(async (page: number) => {
+    const userId = user?._id || user?.id;
+    if (!userId) return;
+    setLoadingPosts(true);
+    try {
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+      const res = await fetchPosts(page, userId);
+      const fetched: Meal[] = (res.data as any[]).map((p: any) => ({
+        id: p._id,
+        userId: p.author?._id || p.author,
+        user: {
+          id: p.author?._id || p.author,
+          name: p.author?.username || '',
+          username: p.author?.username || '',
+          avatar: p.author?.avatar || '',
+        },
+        imageUrl: p.imageUrl?.startsWith('/uploads/')
+          ? `${serverUrl}${p.imageUrl}`
+          : p.imageUrl,
+        description: p.description || p.mealName || '',
+        calories: p.calories,
+        protein: p.protein,
+        carbs: p.carbs,
+        fat: p.fat,
+        mealName: p.mealName,
+        likes: p.likes?.length ?? 0,
+        comments: p.commentsCount ?? 0,
+        isLiked: false,
+        createdAt: p.createdAt,
+      }));
+      if (page === 1) {
+        setPosts(fetched);
+      } else {
+        setPosts((prev) => [...prev, ...fetched]);
+      }
+      setHasMorePosts(fetched.length === 10);
+    } catch {
+      // silently fail — user still sees profile
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      void loadPosts(1);
+    }
+  }, [user, loadPosts]);
+
+  const handleLoadMore = () => {
+    const nextPage = postsPage + 1;
+    setPostsPage(nextPage);
+    void loadPosts(nextPage);
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await deletePost(postId);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch {
+      alert('Failed to delete post. Please try again.');
+    }
+  };
+
+  const handleEditPost = (meal: Meal) => {
+    setEditingMeal(meal);
+  };
+
+  const handleEditSave = (updatedMeal: Meal) => {
+    setPosts((prev) => prev.map((p) => (p.id === updatedMeal.id ? updatedMeal : p)));
+    setEditingMeal(null);
+  };
 
   const displayEmail = user?.email ?? '—';
   const displayUsername = user?.username ?? '—';
@@ -239,6 +324,58 @@ export default function Profile() {
           </form>
         </div>
       </div>
+
+      {/* My Posts Section */}
+      <div className="max-w-lg mx-auto px-4 py-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">My Posts</h2>
+
+        {posts.length === 0 && !loadingPosts && (
+          <div className="text-center py-12 text-gray-500">
+            <p className="text-sm">You haven't posted any meals yet.</p>
+            <Link to="/" className="text-sm text-lime-600 hover:underline mt-2 inline-block">
+              Go to Feed to create your first post
+            </Link>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {posts.map((meal) => (
+            <MealCard
+              key={meal.id}
+              meal={meal}
+              onLike={() => {}}
+              onCommentClick={() => {}}
+              onEdit={handleEditPost}
+              onDelete={handleDeletePost}
+            />
+          ))}
+        </div>
+
+        {loadingPosts && (
+          <div className="text-center py-6 text-gray-500 text-sm">Loading posts…</div>
+        )}
+
+        {hasMorePosts && posts.length > 0 && !loadingPosts && (
+          <div className="text-center pt-4">
+            <button
+              onClick={handleLoadMore}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Load more
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Edit Post Modal */}
+      {editingMeal && (
+        <EditPostModal
+          isOpen={true}
+          meal={editingMeal}
+          onClose={() => setEditingMeal(null)}
+          onSave={handleEditSave}
+        />
+      )}
       </main>
     </div>
   );

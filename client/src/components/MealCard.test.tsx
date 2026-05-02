@@ -73,4 +73,42 @@ describe('MealCard', () => {
 
     expect(screen.queryByText('P:')).not.toBeInTheDocument();
   });
+
+  test('renders edit and delete buttons when callbacks are provided', () => {
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+    render(
+      <MealCard meal={baseMeal} onLike={vi.fn()} onCommentClick={vi.fn()} onEdit={onEdit} onDelete={onDelete} />
+    );
+
+    expect(screen.getByLabelText('Edit post')).toBeInTheDocument();
+    expect(screen.getByLabelText('Delete post')).toBeInTheDocument();
+  });
+
+  test('does not render edit/delete buttons when callbacks are not provided', () => {
+    render(<MealCard meal={baseMeal} onLike={vi.fn()} onCommentClick={vi.fn()} />);
+
+    expect(screen.queryByLabelText('Edit post')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Delete post')).not.toBeInTheDocument();
+  });
+
+  test('calls onEdit with meal when edit button is clicked', () => {
+    const onEdit = vi.fn();
+    render(
+      <MealCard meal={baseMeal} onLike={vi.fn()} onCommentClick={vi.fn()} onEdit={onEdit} />
+    );
+
+    fireEvent.click(screen.getByLabelText('Edit post'));
+    expect(onEdit).toHaveBeenCalledWith(baseMeal);
+  });
+
+  test('calls onDelete with post ID when delete button is clicked', () => {
+    const onDelete = vi.fn();
+    render(
+      <MealCard meal={baseMeal} onLike={vi.fn()} onCommentClick={vi.fn()} onDelete={onDelete} />
+    );
+
+    fireEvent.click(screen.getByLabelText('Delete post'));
+    expect(onDelete).toHaveBeenCalledWith('meal-1');
+  });
 });
