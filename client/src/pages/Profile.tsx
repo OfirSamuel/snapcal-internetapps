@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Newspaper, User } from 'lucide-react';
+import { Newspaper, User, Settings, Pencil, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { updateMyProfile } from '../lib/authApi';
 import { fetchPosts, deletePost } from '../lib/api';
-import { MealCard } from '../components/MealCard';
 import { EditPostModal } from '../components/EditPostModal';
 import type { Meal } from '../types';
 
@@ -29,6 +28,7 @@ export default function Profile() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
 
   // Posts state
   const [posts, setPosts] = useState<Meal[]>([]);
@@ -36,6 +36,7 @@ export default function Profile() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -187,6 +188,11 @@ export default function Profile() {
     );
   }
 
+  const totalCalories = posts.reduce((sum, meal) => sum + meal.calories, 0);
+  const totalMeals = posts.length;
+  const avgCalories = totalMeals > 0 ? Math.round(totalCalories / totalMeals) : 0;
+  const totalLikes = posts.reduce((sum, meal) => sum + meal.likes, 0);
+
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
       {/* Left Sidebar */}
@@ -213,159 +219,264 @@ export default function Profile() {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-10 shadow-sm">
         <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-lime-500 tracking-tight">SnapCal</h1>
-          <Link
-            to="/"
-            className="text-gray-700 hover:text-lime-600 transition-colors"
-            aria-label="Feed"
+          <h1 className="text-xl font-semibold text-gray-900">Profile</h1>
+          <button
+            onClick={() => setEditProfileOpen(!editProfileOpen)}
+            className="text-gray-600 hover:text-lime-600 transition-colors"
           >
-            <Newspaper className="w-7 h-7" />
-          </Link>
+            <Settings className="w-6 h-6" />
+          </button>
         </div>
       </div>
 
       {/* Main Content */}
       <main className="flex-1 pb-20 md:pb-0 pt-16 md:pt-0">
-        <div className="max-w-lg mx-auto px-4 py-10">
-          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Your profile</h1>
-              <p className="mt-1 text-sm text-gray-600">View and update your account details.</p>
+        {/* Profile Info Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-2xl mx-auto px-4 py-8">
+            <div className="flex items-start gap-6 mb-6">
+              {imageSrc ? (
+                <img
+                  src={imageSrc}
+                  alt={displayUsername}
+                  className="w-20 h-20 rounded-full object-cover border border-gray-200"
+                />
+              ) : (
+                <div className="flex w-20 h-20 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-gray-50 text-xs text-gray-500">
+                  No photo
+                </div>
+              )}
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">{displayUsername}</h2>
+                <p className="text-gray-500 mb-4">{displayEmail}</p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setEditProfileOpen(!editProfileOpen)}
+                    className="bg-lime-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-lime-600 transition-colors"
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Log out
+                  </button>
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="shrink-0 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
-            >
-              Log out
-            </button>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{totalMeals}</p>
+                <p className="text-sm text-gray-500">Meals</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{avgCalories}</p>
+                <p className="text-sm text-gray-500">Avg Calories</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{totalLikes}</p>
+                <p className="text-sm text-gray-500">Total Likes</p>
+              </div>
+            </div>
           </div>
-
-          <div className="mt-6 flex flex-col gap-4 border-t border-gray-100 pt-6 sm:flex-row sm:items-center">
-            {imageSrc ? (
-              <img
-                src={imageSrc}
-                alt=""
-                className="h-20 w-20 shrink-0 rounded-full border border-gray-200 object-cover"
-              />
-            ) : (
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-gray-50 text-xs text-gray-500">
-                No photo
-              </div>
-            )}
-            <div className="min-w-0 text-sm">
-              <p className="font-medium text-gray-900">{displayUsername}</p>
-              <p className="text-gray-600">{displayEmail}</p>
-              {(user?.avatarUrl || user?.avatar) && (
-                <p className="mt-1 truncate text-xs text-gray-500" title={user?.avatarUrl || user?.avatar}>
-                  {user?.avatarUrl ? 'Avatar URL set' : 'Legacy avatar field'}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4 border-t border-gray-100 pt-6">
-            <h2 className="text-sm font-medium text-gray-900">Edit profile</h2>
-
-            <div>
-              <label htmlFor="profile-username" className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <input
-                id="profile-username"
-                type="text"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
-              />
-              {fieldErrors.username && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="profile-avatar-url" className="block text-sm font-medium text-gray-700">
-                Avatar URL (optional)
-              </label>
-              <input
-                id="profile-avatar-url"
-                type="url"
-                placeholder="https://example.com/photo.jpg"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
-              />
-              {fieldErrors.avatarUrl && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.avatarUrl}</p>
-              )}
-            </div>
-
-            {error && (
-              <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800" role="status">
-                {success}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full rounded-md bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-            >
-              {saving ? 'Saving…' : 'Save changes'}
-            </button>
-          </form>
         </div>
-      </div>
 
-      {/* My Posts Section */}
-      <div className="max-w-lg mx-auto px-4 py-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">My Posts</h2>
+        {/* Edit Profile Form (collapsible) */}
+        {editProfileOpen && (
+          <div className="bg-white border-b border-gray-200">
+            <div className="max-w-2xl mx-auto px-4 py-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-900">Edit profile</h3>
 
-        {posts.length === 0 && !loadingPosts && (
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-sm">You haven't posted any meals yet.</p>
-            <Link to="/" className="text-sm text-lime-600 hover:underline mt-2 inline-block">
-              Go to Feed to create your first post
-            </Link>
+                <div>
+                  <label htmlFor="profile-username" className="block text-sm font-medium text-gray-700">
+                    Username
+                  </label>
+                  <input
+                    id="profile-username"
+                    type="text"
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                  />
+                  {fieldErrors.username && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="profile-avatar-url" className="block text-sm font-medium text-gray-700">
+                    Avatar URL (optional)
+                  </label>
+                  <input
+                    id="profile-avatar-url"
+                    type="url"
+                    placeholder="https://example.com/photo.jpg"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                  />
+                  {fieldErrors.avatarUrl && (
+                    <p className="mt-1 text-sm text-red-600">{fieldErrors.avatarUrl}</p>
+                  )}
+                </div>
+
+                {error && (
+                  <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                    {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800" role="status">
+                    {success}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-md bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {saving ? 'Saving…' : 'Save changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditProfileOpen(false)}
+                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
-        <div className="space-y-4">
-          {posts.map((meal) => (
-            <MealCard
-              key={meal.id}
-              meal={meal}
-              onLike={() => {}}
-              onCommentClick={() => {}}
-              onEdit={handleEditPost}
-              onDelete={handleDeletePost}
+        {/* My Meals Grid */}
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <h3 className="font-semibold text-gray-900 mb-4">My Meals</h3>
+
+          {posts.length === 0 && !loadingPosts && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No meals yet. Start tracking!</p>
+              <Link to="/" className="text-sm text-lime-600 hover:underline mt-2 inline-block">
+                Go to Feed to create your first post
+              </Link>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-1">
+            {posts.map((meal) => (
+              <div
+                key={meal.id}
+                className="aspect-square bg-gray-200 cursor-pointer relative group overflow-hidden"
+                onClick={() => setSelectedMeal(meal)}
+              >
+                <img
+                  src={meal.imageUrl}
+                  alt={meal.description}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="text-white text-center">
+                    <p className="font-bold text-lg">{meal.calories}</p>
+                    <p className="text-xs">calories</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {loadingPosts && (
+            <div className="text-center py-6 text-gray-500 text-sm">Loading posts…</div>
+          )}
+
+          {hasMorePosts && posts.length > 0 && !loadingPosts && (
+            <div className="text-center pt-4">
+              <button
+                onClick={handleLoadMore}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Load more
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Meal Detail Modal */}
+      {selectedMeal && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedMeal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full overflow-hidden max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={selectedMeal.imageUrl}
+              alt={selectedMeal.description}
+              className="w-full aspect-square object-cover"
             />
-          ))}
-        </div>
-
-        {loadingPosts && (
-          <div className="text-center py-6 text-gray-500 text-sm">Loading posts…</div>
-        )}
-
-        {hasMorePosts && posts.length > 0 && !loadingPosts && (
-          <div className="text-center pt-4">
-            <button
-              onClick={handleLoadMore}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Load more
-            </button>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {selectedMeal.calories} cal
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {selectedMeal.likes} likes • {selectedMeal.comments} comments
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingMeal(selectedMeal);
+                      setSelectedMeal(null);
+                    }}
+                    className="p-2 rounded-lg text-gray-500 hover:text-lime-600 hover:bg-lime-50 transition-colors"
+                    aria-label="Edit post"
+                  >
+                    <Pencil className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedMeal(null);
+                      void handleDeletePost(selectedMeal.id);
+                    }}
+                    className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    aria-label="Delete post"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              {selectedMeal.protein !== undefined && selectedMeal.carbs !== undefined && selectedMeal.fat !== undefined && (
+                <div className="flex items-center gap-6 mb-4 text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+                  <div>
+                    <span className="font-medium">Protein:</span> {selectedMeal.protein}g
+                  </div>
+                  <div>
+                    <span className="font-medium">Carbs:</span> {selectedMeal.carbs}g
+                  </div>
+                  <div>
+                    <span className="font-medium">Fat:</span> {selectedMeal.fat}g
+                  </div>
+                </div>
+              )}
+              <p className="text-gray-700">{selectedMeal.description}</p>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Edit Post Modal */}
       {editingMeal && (
@@ -376,7 +487,6 @@ export default function Profile() {
           onSave={handleEditSave}
         />
       )}
-      </main>
     </div>
   );
 }
