@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback, type FormEvent } from 'react';
+import { useEffect, useState, useCallback, useRef, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Newspaper, User, Settings, Pencil, Trash2, PlusCircle } from 'lucide-react';
+import { Newspaper, User, Settings, Pencil, Trash2, PlusCircle, Camera } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { updateMyProfile } from '../lib/authApi';
@@ -9,27 +9,20 @@ import { EditPostModal } from '../components/EditPostModal';
 import { CreateMealModal } from '../components/CreateMealModal';
 import type { Meal } from '../types';
 
-const isValidHttpUrl = (value: string): boolean => {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
-
 export default function Profile() {
   const navigate = useNavigate();
   const { user, fetchMe, logout } = useAuth();
 
   const [username, setUsername] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ username?: string; avatarUrl?: string }>({});
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ username?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Posts state
   const [posts, setPosts] = useState<Meal[]>([]);
@@ -54,7 +47,6 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       setUsername(user.username);
-      setAvatarUrl(user.avatarUrl ?? '');
     }
   }, [user]);
 
@@ -138,7 +130,11 @@ export default function Profile() {
 
   const displayEmail = user?.email ?? '—';
   const displayUsername = user?.username ?? '—';
-  const imageSrc = user?.avatarUrl || user?.avatar || null;
+  const rawAvatar = user?.avatarUrl || user?.avatar || null;
+  const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+  const imageSrc = rawAvatar?.startsWith('/uploads/')
+    ? `${serverUrl}${rawAvatar}`
+    : rawAvatar;
 
   const handleLogout = () => {
     logout();
@@ -150,15 +146,10 @@ export default function Profile() {
     setError(null);
     setSuccess(null);
 
-    const nextErrors: { username?: string; avatarUrl?: string } = {};
+    const nextErrors: { username?: string } = {};
     const trimmedUsername = username.trim();
     if (!trimmedUsername) {
       nextErrors.username = 'Username cannot be empty';
-    }
-
-    const trimmedAvatar = avatarUrl.trim();
-    if (trimmedAvatar && !isValidHttpUrl(trimmedAvatar)) {
-      nextErrors.avatarUrl = 'Enter a valid http(s) URL or leave blank';
     }
 
     setFieldErrors(nextErrors);
@@ -168,11 +159,15 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      await updateMyProfile({
-        username: trimmedUsername,
-        avatarUrl: trimmedAvatar,
-      });
+      const formData = new FormData();
+      formData.append('username', trimmedUsername);
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+      await updateMyProfile(formData);
       await fetchMe();
+      setAvatarFile(null);
+      setAvatarPreview(null);
       setSuccess('Profile saved successfully.');
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -323,20 +318,52 @@ export default function Profile() {
                 </div>
 
                 <div>
-                  <label htmlFor="profile-avatar-url" className="block text-sm font-medium text-gray-700">
-                    Avatar URL (optional)
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Profile Photo
                   </label>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      {avatarPreview || imageSrc ? (
+                        <img
+                          src={avatarPreview || imageSrc!}
+                          alt="Avatar preview"
+                          className="w-16 h-16 rounded-full object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+                          <User className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        className="absolute -bottom-1 -right-1 bg-lime-500 text-white rounded-full p-1.5 shadow-md hover:bg-lime-600 transition-colors"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {avatarFile ? (
+                        <span className="text-lime-600 font-medium">{avatarFile.name}</span>
+                      ) : (
+                        <span>Click the camera icon to upload a photo</span>
+                      )}
+                    </div>
+                  </div>
                   <input
-                    id="profile-avatar-url"
-                    type="url"
-                    placeholder="https://example.com/photo.jpg"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setAvatarFile(file);
+                      const reader = new FileReader();
+                      reader.onloadend = () => setAvatarPreview(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }}
+                    className="hidden"
                   />
-                  {fieldErrors.avatarUrl && (
-                    <p className="mt-1 text-sm text-red-600">{fieldErrors.avatarUrl}</p>
-                  )}
                 </div>
 
                 {error && (

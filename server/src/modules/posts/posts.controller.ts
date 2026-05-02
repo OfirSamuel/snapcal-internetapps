@@ -20,7 +20,7 @@ export const createPost = async (req: any, res: Response, next: NextFunction) =>
       author: req.user.id
     });
 
-    const populated = await post.populate('author', 'username avatar');
+    const populated = await post.populate('author', 'username avatar avatarUrl');
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -42,7 +42,7 @@ export const getPosts = async (req: Request, res: Response, next: NextFunction) 
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('author', 'username avatar');
+      .populate('author', 'username avatar avatarUrl');
 
     res.json(posts);
   } catch (error) {
