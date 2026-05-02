@@ -1,4 +1,4 @@
-import type { Meal, User, Recipe } from '../types';
+import type { Meal, User } from '../types';
 
 export const currentUser: User = {
   id: 'user-1',
@@ -54,10 +54,3 @@ export const initialMeals: Meal[] = [
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
   },
 ];
-
-export const recipeOfTheDay: Recipe = {
-  title: 'High-Protein Overnight Oats',
-  imageUrl: 'https://images.unsplash.com/photo-1517673400267-ae03058f1b28?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvdmVybmlnaHQlMjBvYXRzfGVufDF8fHx8MTc3NTczNDkwNXww&ixlib=rb-4.1.0&q=80&w=400',
-  calories: 385,
-  cookTime: '5 min prep',
-};
