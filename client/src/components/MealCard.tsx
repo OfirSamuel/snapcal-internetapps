@@ -1,4 +1,4 @@
-import { Heart, MessageCircle } from 'lucide-react';
+import { Heart, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import type { Meal } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -6,9 +6,11 @@ interface MealCardProps {
   meal: Meal;
   onLike: (id: string) => void;
   onCommentClick: (id: string) => void;
+  onEdit?: (meal: Meal) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function MealCard({ meal, onLike, onCommentClick }: MealCardProps) {
+export function MealCard({ meal, onLike, onCommentClick, onEdit, onDelete }: MealCardProps) {
   const displayName = meal.user.name || meal.user.username || 'Unknown User';
   const username = meal.user.username || '';
   const avatarSrc =
@@ -31,6 +33,28 @@ export function MealCard({ meal, onLike, onCommentClick }: MealCardProps) {
         <p className="text-xs text-gray-400">
           {formatDistanceToNow(new Date(meal.createdAt), { addSuffix: true })}
         </p>
+        {(onEdit || onDelete) && (
+          <div className="flex items-center gap-1 ml-2">
+            {onEdit && (
+              <button
+                onClick={() => onEdit(meal)}
+                className="p-1.5 rounded-md text-gray-400 hover:text-lime-600 hover:bg-lime-50 transition-colors"
+                aria-label="Edit post"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(meal.id)}
+                className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                aria-label="Delete post"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Image */}

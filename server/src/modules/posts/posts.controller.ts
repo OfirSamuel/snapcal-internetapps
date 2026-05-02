@@ -20,7 +20,7 @@ export const createPost = async (req: any, res: Response, next: NextFunction) =>
       author: req.user.id
     });
 
-    const populated = await post.populate('author', 'username avatar');
+    const populated = await post.populate('author', 'username avatar avatarUrl');
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -70,6 +70,10 @@ export const updatePost = async (req: any, res: Response, next: NextFunction) =>
 
     if (req.body.description !== undefined) post.description = req.body.description;
     if (req.body.calories !== undefined) post.calories = Number(req.body.calories);
+    if (req.body.protein !== undefined) post.protein = Number(req.body.protein);
+    if (req.body.carbs !== undefined) post.carbs = Number(req.body.carbs);
+    if (req.body.fat !== undefined) post.fat = Number(req.body.fat);
+    if (req.body.mealName !== undefined) post.mealName = req.body.mealName;
 
     if (req.file) {
       const oldPath = path.join(process.cwd(), post.imageUrl);

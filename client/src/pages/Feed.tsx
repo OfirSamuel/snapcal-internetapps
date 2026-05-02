@@ -29,26 +29,29 @@ export default function Feed() {
       setLoading(true);
       try {
         const response = await fetchPosts(page);
-        const newMeals: Meal[] = response.data.map((post: any) => ({
+        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+        const newMeals: Meal[] = response.data.map((post: any) => {
+          const rawAvatar = post.author?.avatarUrl || post.author?.avatar || '';
+          const resolvedAvatar = rawAvatar.startsWith('/uploads/')
+            ? `${serverUrl}${rawAvatar}`
+            : rawAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(post.author?.username || 'Unknown')}`;
+          return {
           id: post._id,
           userId: post.author?._id || 'unknown',
           user: {
             id: post.author?._id || 'unknown',
             name: post.author?.username || 'Unknown User',
             username: post.author?.username || 'unknown',
-            avatar:
-              post.author?.avatarUrl ||
-              post.author?.avatar ||
-              'https://api.dicebear.com/7.x/avataaars/svg?seed=Unknown',
+            avatar: resolvedAvatar,
           },
-          imageUrl: `${import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'}${post.imageUrl}`,
+          imageUrl: `${serverUrl}${post.imageUrl}`,
           description: post.description,
           calories: post.calories,
           likes: post.likes.length,
           comments: post.commentsCount,
           isLiked: false,
           createdAt: post.createdAt,
-        }));
+        }});
 
         if (newMeals.length === 0) setHasMore(false);
         setMeals((prev) => (page === 1 ? newMeals : [...prev, ...newMeals]));

@@ -15,6 +15,7 @@ export interface Meal {
   protein?: number;
   carbs?: number;
   fat?: number;
+  mealName?: string;
   likes: number;
   comments: number;
   isLiked: boolean;

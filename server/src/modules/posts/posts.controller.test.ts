@@ -297,6 +297,46 @@ describe('updatePost', () => {
     expect(mockPost.calories).toBe(300); // unchanged
   });
 
+  test('updates protein, carbs, fat, and mealName fields', async () => {
+    const mockPost = {
+      author: { toString: () => 'user1' },
+      description: 'Meal',
+      calories: 300,
+      protein: 20,
+      carbs: 40,
+      fat: 10,
+      mealName: 'Old Meal',
+      imageUrl: '/uploads/img.jpg',
+      save: jest.fn().mockResolvedValue({
+        description: 'Meal',
+        calories: 300,
+        protein: 35,
+        carbs: 50,
+        fat: 15,
+        mealName: 'New Meal',
+        imageUrl: '/uploads/img.jpg',
+      }),
+    };
+    (Post.findById as jest.Mock).mockResolvedValue(mockPost);
+
+    const req = {
+      params: { id: 'post1' },
+      body: { protein: '35', carbs: '50', fat: '15', mealName: 'New Meal' },
+      user: { id: 'user1' },
+      file: undefined,
+    } as any;
+    const res = mockResponse();
+
+    await updatePost(req, res, mockNext);
+
+    expect(mockPost.protein).toBe(35);
+    expect(mockPost.carbs).toBe(50);
+    expect(mockPost.fat).toBe(15);
+    expect(mockPost.mealName).toBe('New Meal');
+    expect(mockPost.save).toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalled();
+  });
+
   test('replaces image file when new file is uploaded', async () => {
     (fs.existsSync as jest.Mock).mockReturnValue(true);
     (fs.unlinkSync as jest.Mock).mockReturnValue(undefined);

@@ -39,7 +39,10 @@ export const getMyProfile = async (): Promise<ProfileMeResponse> => {
   return data;
 };
 
-export const updateMyProfile = async (body: UpdateProfileBody): Promise<UpdateProfileResponse> => {
-  const { data } = await api.put<UpdateProfileResponse>('/profile/me', body);
+export const updateMyProfile = async (body: UpdateProfileBody | FormData): Promise<UpdateProfileResponse> => {
+  const isFormData = body instanceof FormData;
+  const { data } = await api.put<UpdateProfileResponse>('/profile/me', body, isFormData ? {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  } : undefined);
   return data;
 };

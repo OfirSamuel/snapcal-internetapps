@@ -1,5 +1,7 @@
 import { Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 import User from '../users/users.model';
 
 interface AuthenticatedRequest {
@@ -11,6 +13,7 @@ interface AuthenticatedRequest {
     username?: string;
     avatarUrl?: string;
   };
+  file?: Express.Multer.File;
 }
 
 const isValidAvatarUrl = (value: string): boolean => {
@@ -52,8 +55,8 @@ export const updateMyProfile = async (req: AuthenticatedRequest, res: Response, 
 
     const { username, avatarUrl } = req.body;
 
-    if (username === undefined && avatarUrl === undefined) {
-      return res.status(400).json({ message: 'At least one field is required: username or avatarUrl' });
+    if (username === undefined && avatarUrl === undefined && !req.file) {
+      return res.status(400).json({ message: 'At least one field is required: username, avatarUrl, or avatar file' });
     }
 
     const updates: { username?: string; avatarUrl?: string } = {};
@@ -66,7 +69,15 @@ export const updateMyProfile = async (req: AuthenticatedRequest, res: Response, 
       updates.username = normalizedUsername;
     }
 
-    if (avatarUrl !== undefined) {
+    if (req.file) {
+      // Delete old avatar file if it was a local upload
+      const existingUser = await User.findById(userId).select('avatarUrl');
+      if (existingUser?.avatarUrl?.startsWith('/uploads/')) {
+        const oldPath = path.join(process.cwd(), existingUser.avatarUrl);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      updates.avatarUrl = `/uploads/${req.file.filename}`;
+    } else if (avatarUrl !== undefined) {
       const normalizedAvatarUrl = avatarUrl.trim();
       if (normalizedAvatarUrl && !isValidAvatarUrl(normalizedAvatarUrl)) {
         return res.status(400).json({ message: 'avatarUrl must be a valid http(s) URL' });
