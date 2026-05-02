@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { PlusCircle, Newspaper } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { PlusCircle, Newspaper, User } from 'lucide-react';
 import { MealCard } from '../components/MealCard';
 import { RecipeOfTheDay } from '../components/RecipeOfTheDay';
 import { CreateMealModal } from '../components/CreateMealModal';
@@ -103,6 +104,13 @@ export default function Feed() {
             <PlusCircle className="w-5 h-5" />
             Create Meal
           </button>
+          <Link
+            to="/profile"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 font-medium hover:bg-lime-50 hover:text-lime-600 transition-colors"
+          >
+            <User className="w-5 h-5" />
+            Profile
+          </Link>
         </nav>
       </aside>
 
@@ -110,12 +118,21 @@ export default function Feed() {
       <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-10 shadow-sm">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-2xl font-bold text-lime-500 tracking-tight">SnapCal</h1>
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="text-lime-500 hover:text-lime-600 transition-colors"
-          >
-            <PlusCircle className="w-7 h-7" />
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/profile"
+              className="text-gray-700 hover:text-lime-600 transition-colors"
+              aria-label="Profile"
+            >
+              <User className="w-7 h-7" />
+            </Link>
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="text-lime-500 hover:text-lime-600 transition-colors"
+            >
+              <PlusCircle className="w-7 h-7" />
+            </button>
+          </div>
         </div>
       </div>
 
