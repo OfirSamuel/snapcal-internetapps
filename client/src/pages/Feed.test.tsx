@@ -1,5 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { AuthProvider } from '../context/AuthContext';
 import Feed from './Feed';
 
 // Mock the API
@@ -8,9 +10,19 @@ const mockFetchRecipeOfTheDay = vi.fn();
 vi.mock('../lib/api', () => ({
   fetchPosts: (...args: unknown[]) => mockFetchPosts(...args),
   fetchRecipeOfTheDay: () => mockFetchRecipeOfTheDay(),
+  fetchPostById: vi.fn(),
   createPost: vi.fn(),
   default: { get: vi.fn(), post: vi.fn() },
 }));
+
+const renderFeed = () =>
+  render(
+    <MemoryRouter>
+      <AuthProvider>
+        <Feed />
+      </AuthProvider>
+    </MemoryRouter>
+  );
 
 const mockRecipe = {
   title: 'Test Recipe',
@@ -32,7 +44,7 @@ describe('Feed', () => {
   test('renders header and recipe of the day', async () => {
     mockFetchPosts.mockResolvedValue({ data: [] });
 
-    render(<Feed />);
+    renderFeed();
 
     await waitFor(() => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument();
@@ -43,7 +55,7 @@ describe('Feed', () => {
   test('opens recipe detail modal on click', async () => {
     mockFetchPosts.mockResolvedValue({ data: [] });
 
-    render(<Feed />);
+    renderFeed();
 
     await waitFor(() => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument();
@@ -61,7 +73,7 @@ describe('Feed', () => {
     mockFetchRecipeOfTheDay.mockRejectedValue(new Error('API error'));
     mockFetchPosts.mockResolvedValue({ data: [] });
 
-    render(<Feed />);
+    renderFeed();
 
     await waitFor(() => {
       expect(screen.getAllByText('SnapCal').length).toBeGreaterThan(0);
@@ -85,20 +97,20 @@ describe('Feed', () => {
       ],
     });
 
-    render(<Feed />);
+    renderFeed();
 
     await waitFor(() => {
       expect(screen.getByText('Healthy bowl')).toBeInTheDocument();
     });
   });
 
-  test('shows no more meals when API returns empty array', async () => {
+  test('shows empty state when API returns empty array', async () => {
     mockFetchPosts.mockResolvedValue({ data: [] });
 
-    render(<Feed />);
+    renderFeed();
 
     await waitFor(() => {
-      expect(screen.getByText('No more meals to load')).toBeInTheDocument();
+      expect(screen.getByText('No meals to show yet.')).toBeInTheDocument();
     });
   });
 
@@ -106,7 +118,7 @@ describe('Feed', () => {
     mockFetchRecipeOfTheDay.mockRejectedValue(new Error('Recipe error'));
     mockFetchPosts.mockRejectedValue(new Error('Network error'));
 
-    render(<Feed />);
+    renderFeed();
 
     // Should not crash — header still visible
     await waitFor(() => {
