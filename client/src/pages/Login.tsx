@@ -11,22 +11,20 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ identifier?: string; password?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    const nextFieldErrors: { email?: string; password?: string } = {};
+    const nextFieldErrors: { identifier?: string; password?: string } = {};
 
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      nextFieldErrors.email = 'Email is required';
-    } else if (!emailLooksValid(trimmedEmail)) {
-      nextFieldErrors.email = 'Enter a valid email';
+    const trimmedIdentifier = identifier.trim();
+    if (!trimmedIdentifier) {
+      nextFieldErrors.identifier = 'Email or username is required';
     }
 
     if (!password) {
@@ -42,7 +40,12 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      await login({ email: trimmedEmail, password });
+      const isEmail = emailLooksValid(trimmedIdentifier);
+      await login(
+        isEmail
+          ? { email: trimmedIdentifier, password }
+          : { username: trimmedIdentifier, password }
+      );
       navigate('/profile', { replace: true });
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -57,67 +60,70 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">Log in</h1>
-        <p className="mt-1 text-sm text-gray-600">Sign in to your SnapCal account.</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 py-10">
+      <div className="w-full max-w-md">
+        <h1 className="mb-6 text-center text-3xl font-bold tracking-tight text-lime-500">SnapCal</h1>
+        <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900">Log in</h2>
+          <p className="mt-1 text-sm text-gray-600">Sign in to your SnapCal account.</p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label htmlFor="login-email" className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-            />
-            {fieldErrors.email && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="login-password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-            />
-            {fieldErrors.password && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
-            )}
-          </div>
-
-          {error && (
-            <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-              {error}
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="login-identifier" className="block text-sm font-medium text-gray-700">
+                Email or Username
+              </label>
+              <input
+                id="login-identifier"
+                type="text"
+                autoComplete="username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+              />
+              {fieldErrors.identifier && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.identifier}</p>
+              )}
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="login-password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="login-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+              />
+              {fieldErrors.password && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+              )}
+            </div>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Don&apos;t have an account?{' '}
-          <Link to="/register" className="font-medium text-gray-900 underline hover:no-underline">
-            Register
-          </Link>
-        </p>
+            {error && (
+              <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-md bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+
+          <p className="mt-4 text-center text-sm text-gray-600">
+            Don&apos;t have an account?{' '}
+            <Link to="/register" className="font-medium text-lime-600 hover:text-lime-700">
+              Register
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
