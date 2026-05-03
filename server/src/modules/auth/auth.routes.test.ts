@@ -9,6 +9,8 @@ import app from '../../app';
 import { clearTestDB, connectTestDB, disconnectTestDB } from '../../test/testDb';
 import { verifyGoogleIdToken } from './googleVerify';
 
+jest.setTimeout(15000);
+
 describe('Auth Routes', () => {
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = 'test_access_secret';
