@@ -2,6 +2,13 @@ import { useEffect, useRef } from 'react';
 
 type Flow = 'signin' | 'signup';
 
+/** Avoids GIS warning: google.accounts.id.initialize() is called multiple times */
+let gsiInitializedForClientId: string | null = null;
+
+const latestOnSuccess: {
+  current: ((credential: string) => Promise<void> | void) | null;
+} = { current: null };
+
 interface GoogleSignInButtonProps {
   flow: Flow;
   disabled?: boolean;
@@ -14,6 +21,9 @@ interface GoogleSignInButtonProps {
 export function GoogleSignInButton({ flow, disabled, onSuccess }: GoogleSignInButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+
+  // Keep GIS callback on the latest handler without re-calling initialize().
+  latestOnSuccess.current = onSuccess;
 
   useEffect(() => {
     if (!clientId || !containerRef.current) {
@@ -29,17 +39,20 @@ export function GoogleSignInButton({ flow, disabled, onSuccess }: GoogleSignInBu
         return;
       }
 
-      el.innerHTML = '';
+      if (gsiInitializedForClientId !== clientId) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async (response) => {
+            if (!response.credential) {
+              return;
+            }
+            await latestOnSuccess.current?.(response.credential);
+          },
+        });
+        gsiInitializedForClientId = clientId;
+      }
 
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response) => {
-          if (!response.credential) {
-            return;
-          }
-          await onSuccess(response.credential);
-        },
-      });
+      el.innerHTML = '';
 
       window.google.accounts.id.renderButton(el, {
         type: 'standard',
@@ -65,13 +78,8 @@ export function GoogleSignInButton({ flow, disabled, onSuccess }: GoogleSignInBu
       cancelled = true;
       if (intervalId) window.clearInterval(intervalId);
       el.innerHTML = '';
-      try {
-        window.google?.accounts?.id.cancel();
-      } catch {
-        /* ignore */
-      }
     };
-  }, [clientId, flow, onSuccess]);
+  }, [clientId, flow]);
 
   if (!clientId) {
     return (
