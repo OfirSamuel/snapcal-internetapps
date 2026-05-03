@@ -1,6 +1,13 @@
+import type { TokenPayload } from 'google-auth-library';
+
+jest.mock('./googleVerify', () => ({
+  verifyGoogleIdToken: jest.fn(),
+}));
+
 import request from 'supertest';
 import app from '../../app';
 import { clearTestDB, connectTestDB, disconnectTestDB } from '../../test/testDb';
+import { verifyGoogleIdToken } from './googleVerify';
 
 describe('Auth Routes', () => {
   beforeAll(async () => {
@@ -8,11 +15,13 @@ describe('Auth Routes', () => {
     process.env.JWT_REFRESH_SECRET = 'test_refresh_secret';
     process.env.JWT_ACCESS_EXPIRES_IN = '15m';
     process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+    process.env.GOOGLE_CLIENT_ID = 'test-google-web-client-id.apps.googleusercontent.com';
     await connectTestDB();
   });
 
   beforeEach(async () => {
     await clearTestDB();
+    jest.mocked(verifyGoogleIdToken).mockReset();
   });
 
   afterAll(async () => {
@@ -131,23 +140,48 @@ describe('Auth Routes', () => {
     expect(res.status).toBe(400);
   });
 
-  test('POST /api/auth/google returns 200 in placeholder mode', async () => {
-    const res = await request(app).post('/api/auth/google').send({
-      email: 'google@test.com',
-      username: 'googleuser',
-    });
+  test('POST /api/auth/google returns 400 when credential is missing', async () => {
+    const res = await request(app).post('/api/auth/google').send({});
+
+    expect(res.status).toBe(400);
+    expect(verifyGoogleIdToken).not.toHaveBeenCalled();
+  });
+
+  test('POST /api/auth/google returns 401 when Google token verification fails', async () => {
+    jest.mocked(verifyGoogleIdToken).mockRejectedValue(new Error('Invalid token'));
+
+    const res = await request(app)
+      .post('/api/auth/google')
+      .send({ credential: 'invalid.jwt.value' });
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ message: 'Invalid Google token' });
+    expect(verifyGoogleIdToken).toHaveBeenCalledWith(
+      'invalid.jwt.value',
+      process.env.GOOGLE_CLIENT_ID
+    );
+  });
+
+  test('POST /api/auth/google returns 200 with JWTs for a valid verified Google token', async () => {
+    jest.mocked(verifyGoogleIdToken).mockResolvedValue({
+      sub: 'google-sub-abc123',
+      email: 'newgoogleuser@test.com',
+      email_verified: true,
+      name: 'Google Tester',
+      picture: 'https://lh3.googleusercontent.com/a/example',
+    } as TokenPayload);
+
+    const res = await request(app)
+      .post('/api/auth/google')
+      .send({ credential: 'valid.jwt.stub' });
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('accessToken');
     expect(res.body).toHaveProperty('refreshToken');
-    expect(res.body).toHaveProperty('note');
-  });
-
-  test('POST /api/auth/google returns 400 for missing fields', async () => {
-    const res = await request(app).post('/api/auth/google').send({
-      email: 'google@test.com',
+    expect(res.body.user).toMatchObject({
+      email: 'newgoogleuser@test.com',
+      avatarUrl: 'https://lh3.googleusercontent.com/a/example',
     });
-
-    expect(res.status).toBe(400);
+    expect(res.body.note).toBeUndefined();
   });
 });

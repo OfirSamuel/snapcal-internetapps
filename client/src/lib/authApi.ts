@@ -1,7 +1,6 @@
 import api from './api';
 import type {
   AuthTokensResponse,
-  GoogleAuthResponse,
   LoginBody,
   ProfileMeResponse,
   RefreshResponse,
@@ -20,12 +19,8 @@ export const loginUser = async (body: LoginBody): Promise<AuthTokensResponse> =>
   return data;
 };
 
-/** Placeholder Google endpoint — body shape can evolve when real OAuth is added. */
-export const loginWithGooglePlaceholder = async (body: {
-  email: string;
-  username: string;
-}): Promise<GoogleAuthResponse> => {
-  const { data } = await api.post<GoogleAuthResponse>('/auth/google', body);
+export const loginWithGoogle = async (credential: string): Promise<AuthTokensResponse> => {
+  const { data } = await api.post<AuthTokensResponse>('/auth/google', { credential });
   return data;
 };
 

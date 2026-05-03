@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useCallback, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { useAuth } from '../context/AuthContext';
 
 const emailLooksValid = (value: string): boolean => {
@@ -9,7 +10,7 @@ const emailLooksValid = (value: string): boolean => {
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -21,6 +22,28 @@ export default function Register() {
   }>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+
+  const handleGoogleSuccess = useCallback(
+    async (credential: string) => {
+      setGoogleSubmitting(true);
+      setError(null);
+      try {
+        await loginWithGoogle(credential);
+        navigate('/profile', { replace: true });
+      } catch (err) {
+        if (axios.isAxiosError(err)) {
+          const message = (err.response?.data as { message?: string })?.message;
+          setError(message || 'Google sign-up failed. Please try again.');
+        } else {
+          setError('Something went wrong. Please try again.');
+        }
+      } finally {
+        setGoogleSubmitting(false);
+      }
+    },
+    [loginWithGoogle, navigate]
+  );
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -132,20 +155,38 @@ export default function Register() {
               )}
             </div>
 
-            {error && (
-              <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-                {error}
-              </div>
-            )}
-
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || googleSubmitting}
               className="w-full rounded-md bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? 'Creating account…' : 'Register'}
             </button>
           </form>
+
+          {error && (
+            <div className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white px-2 text-gray-500">or</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton
+            flow="signup"
+            disabled={submitting || googleSubmitting}
+            onSuccess={handleGoogleSuccess}
+          />
+          {googleSubmitting && (
+            <p className="mt-2 text-center text-sm text-gray-500">Continuing with Google…</p>
+          )}
 
           <p className="mt-4 text-center text-sm text-gray-600">
             Already have an account?{' '}

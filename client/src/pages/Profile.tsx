@@ -115,10 +115,6 @@ export default function Profile() {
     }
   };
 
-  const handleEditPost = (meal: Meal) => {
-    setEditingMeal(meal);
-  };
-
   const handleEditSave = (updatedMeal: Meal) => {
     setPosts((prev) => prev.map((p) => (p.id === updatedMeal.id ? updatedMeal : p)));
     setEditingMeal(null);
