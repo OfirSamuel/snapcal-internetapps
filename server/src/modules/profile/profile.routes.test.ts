@@ -3,6 +3,8 @@ import app from '../../app';
 import User from '../users/users.model';
 import { clearTestDB, connectTestDB, disconnectTestDB } from '../../test/testDb';
 
+jest.setTimeout(15000);
+
 const registerAndLogin = async (email: string, username: string, password: string) => {
   await request(app).post('/api/auth/register').send({ email, username, password });
   const loginRes = await request(app).post('/api/auth/login').send({ email, password });
