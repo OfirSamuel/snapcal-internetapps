@@ -14,11 +14,9 @@ function commentAuthorLabel(comment: PostComment): string {
 function commentAuthorAvatar(comment: PostComment): string {
   const a = comment.author;
   const seed = encodeURIComponent(a?.username || a?.email || 'user');
-  return (
-    a?.avatarUrl ||
-    a?.avatar ||
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
-  );
+  const raw = a?.avatarUrl || a?.avatar || '';
+  if (raw.startsWith('/uploads/')) return `${serverBase}${raw}`;
+  return raw || `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
 }
 
 export default function PostComments() {
