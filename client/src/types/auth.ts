@@ -29,11 +29,6 @@ export interface AuthTokensResponse {
   refreshToken: string;
 }
 
-/** Response from POST /api/auth/google (placeholder) */
-export interface GoogleAuthResponse extends AuthTokensResponse {
-  note?: string;
-}
-
 /** Response from POST /api/auth/refresh */
 export interface RefreshResponse {
   accessToken: string;

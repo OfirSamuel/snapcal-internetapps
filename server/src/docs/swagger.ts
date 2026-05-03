@@ -90,10 +90,12 @@ const swaggerDefinition: swaggerJSDoc.SwaggerDefinition = {
       },
       GoogleBody: {
         type: 'object',
-        required: ['email', 'username'],
+        required: ['credential'],
         properties: {
-          email: { type: 'string', format: 'email' },
-          username: { type: 'string' },
+          credential: {
+            type: 'string',
+            description: 'Google Identity Services credential (JWT) from the client callback',
+          },
         },
       },
       ProfileUpdateBody: {
@@ -220,7 +222,7 @@ const swaggerDefinition: swaggerJSDoc.SwaggerDefinition = {
     '/api/auth/google': {
       post: {
         tags: ['Auth'],
-        summary: 'Google sign-in (placeholder — verify ID token in production)',
+        summary: 'Google sign-in (verify ID token, issue SnapCal JWTs)',
         requestBody: {
           required: true,
           content: {
@@ -235,6 +237,9 @@ const swaggerDefinition: swaggerJSDoc.SwaggerDefinition = {
             content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } },
           },
           '400': { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/Message' } } } },
+          '401': { description: 'Invalid or unverified Google token', content: { 'application/json': { schema: { $ref: '#/components/schemas/Message' } } } },
+          '409': { description: 'Account conflict', content: { 'application/json': { schema: { $ref: '#/components/schemas/Message' } } } },
+          '500': { description: 'Server error or Google not configured', content: { 'application/json': { schema: { $ref: '#/components/schemas/Message' } } } },
         },
       },
     },

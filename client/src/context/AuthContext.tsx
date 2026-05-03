@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { LoginBody, RegisterBody, User } from '../types/auth';
-import { getMyProfile, loginUser, registerUser } from '../lib/authApi';
+import { getMyProfile, loginUser, loginWithGoogle as exchangeGoogleCredential, registerUser } from '../lib/authApi';
 import { clearTokens, getAccessToken, setTokens } from '../lib/authStorage';
 
 interface AuthContextValue {
@@ -18,6 +18,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (body: LoginBody) => Promise<void>;
   register: (body: RegisterBody) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   logout: () => void;
   fetchMe: () => Promise<void>;
 }
@@ -88,6 +89,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    setLoading(true);
+    try {
+      const data = await exchangeGoogleCredential(credential);
+      setTokens(data.accessToken, data.refreshToken);
+      setAccessToken(data.accessToken);
+      setUser(data.user);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     clearTokens();
     setAccessToken(null);
@@ -107,10 +120,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       loading,
       login,
       register,
+      loginWithGoogle,
       logout,
       fetchMe,
     }),
-    [user, accessToken, isAuthenticated, loading, login, register, logout, fetchMe]
+    [user, accessToken, isAuthenticated, loading, login, register, loginWithGoogle, logout, fetchMe]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

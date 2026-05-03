@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import type { TokenPayload } from 'google-auth-library';
 import mongoose from 'mongoose';
 import User from '../users/users.model';
 import {
@@ -8,6 +9,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from './auth.utils';
+import { verifyGoogleIdToken } from './googleVerify';
 
 interface RegisterBody {
   username?: string;
@@ -26,8 +28,7 @@ interface RefreshBody {
 }
 
 interface GoogleBody {
-  email?: string;
-  username?: string;
+  credential?: string;
 }
 
 interface RawUserDoc {
@@ -35,6 +36,8 @@ interface RawUserDoc {
   username: string;
   email: string;
   avatar?: string;
+  avatarUrl?: string;
+  googleId?: string;
   passwordHash?: string;
   refreshToken?: string;
 }
@@ -49,6 +52,58 @@ const sanitizeUser = (user: RawUserDoc) => ({
   username: user.username,
   email: user.email,
   avatar: user.avatar ?? '',
+  avatarUrl: user.avatarUrl ?? '',
+});
+
+const baseUsernameFromGoogle = (name: string | undefined, email: string): string => {
+  const cleaned = (name ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '')
+    .slice(0, 24);
+  if (cleaned.length >= 2) return cleaned;
+  const local = email
+    .split('@')[0]
+    ?.replace(/[^a-z0-9_]/gi, '')
+    .toLowerCase()
+    .slice(0, 24);
+  if (local && local.length >= 2) return local;
+  return `user_${email.split('@')[0]?.slice(0, 8) || 'snapcal'}`.replace(/[^a-z0-9_]/g, '_').toLowerCase();
+};
+
+const ensureUniqueUsername = async (name: string | undefined, email: string): Promise<string> => {
+  const base = baseUsernameFromGoogle(name, email).slice(0, 28);
+  let candidate = base;
+  let counter = 0;
+  while (await User.exists({ username: candidate })) {
+    counter += 1;
+    candidate = `${base.slice(0, 20)}_${counter}`;
+    if (counter > 200) {
+      candidate = `${base.slice(0, 10)}_${Date.now().toString(36)}`;
+      break;
+    }
+  }
+  return candidate;
+};
+
+const rawUserFromMongoose = (u: {
+  _id: mongoose.Types.ObjectId;
+  username: string;
+  email: string;
+  avatar?: string;
+  avatarUrl?: string;
+  googleId?: string;
+  passwordHash?: string;
+  refreshToken?: string;
+}): RawUserDoc => ({
+  _id: u._id,
+  username: u.username,
+  email: u.email,
+  avatar: u.avatar,
+  avatarUrl: u.avatarUrl,
+  googleId: u.googleId,
+  passwordHash: u.passwordHash,
+  refreshToken: u.refreshToken,
 });
 
 export const register = async (
@@ -204,49 +259,91 @@ export const refresh = async (req: Request<unknown, unknown, RefreshBody>, res: 
 
 export const google = async (req: Request<unknown, unknown, GoogleBody>, res: Response) => {
   try {
-    const { email, username } = req.body;
-
-    if (!email || !username) {
-      return res.status(400).json({ message: 'email and username are required for Google placeholder auth' });
+    const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+    if (!googleClientId) {
+      return res.status(500).json({ message: 'Google sign-in is not configured' });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-    const normalizedUsername = username.trim();
-
-    if (!normalizedEmail || !normalizedUsername) {
-      return res.status(400).json({ message: 'email and username must not be empty' });
+    const credential =
+      typeof req.body?.credential === 'string' ? req.body.credential.trim() : '';
+    if (!credential) {
+      return res.status(400).json({ message: 'credential is required' });
     }
 
-    let rawUser = (await User.collection.findOne({ email: normalizedEmail })) as RawUserDoc | null;
-
-    if (!rawUser) {
-      const created = await User.create({
-        email: normalizedEmail,
-        username: normalizedUsername,
-        avatar: '',
-      });
-      rawUser = (await User.collection.findOne({ _id: created._id })) as RawUserDoc | null;
+    let payload: TokenPayload;
+    try {
+      payload = await verifyGoogleIdToken(credential, googleClientId);
+    } catch {
+      return res.status(401).json({ message: 'Invalid Google token' });
     }
 
-    if (!rawUser) {
-      return res.status(500).json({ message: 'Failed to complete Google placeholder auth' });
+    if (!payload.email || !payload.sub || payload.email_verified !== true) {
+      return res.status(401).json({ message: 'Invalid Google account' });
     }
 
-    const accessToken = signAccessToken(buildTokenPayload(rawUser));
-    const refreshToken = signRefreshToken(buildTokenPayload(rawUser));
+    const normalizedEmail = payload.email.toLowerCase().trim();
+    const picture = payload.picture?.trim() || undefined;
 
-    await User.collection.updateOne(
-      { _id: rawUser._id },
-      { $set: { refreshToken } }
-    );
+    let userDoc =
+      (await User.findOne({ googleId: payload.sub })) ||
+      (await User.findOne({ email: normalizedEmail }));
+
+    if (userDoc) {
+      if (userDoc.googleId && userDoc.googleId !== payload.sub) {
+        return res
+          .status(409)
+          .json({ message: 'This email is linked to a different Google account' });
+      }
+      if (!userDoc.googleId) {
+        userDoc.googleId = payload.sub;
+      }
+      if (!userDoc.avatarUrl && picture) {
+        userDoc.avatarUrl = picture;
+      }
+      await userDoc.save();
+    } else {
+      const username = await ensureUniqueUsername(payload.name, normalizedEmail);
+      try {
+        userDoc = await User.create({
+          email: normalizedEmail,
+          username,
+          googleId: payload.sub,
+          avatarUrl: picture,
+          avatar: '',
+        });
+      } catch (err: unknown) {
+        const code = (err as { code?: number })?.code;
+        if (code === 11000) {
+          return res.status(409).json({ message: 'Unable to create account. Try again.' });
+        }
+        throw err;
+      }
+    }
+
+    const rawUser = rawUserFromMongoose(userDoc);
+
+    let accessToken: string;
+    let refreshToken: string;
+    try {
+      accessToken = signAccessToken(buildTokenPayload(rawUser));
+      refreshToken = signRefreshToken(buildTokenPayload(rawUser));
+    } catch {
+      return res.status(500).json({ message: 'Failed to issue tokens' });
+    }
+
+    await User.collection.updateOne({ _id: rawUser._id }, { $set: { refreshToken } });
+
+    const persisted = (await User.collection.findOne({ _id: rawUser._id })) as RawUserDoc | null;
+    if (!persisted) {
+      return res.status(500).json({ message: 'Failed to complete Google sign-in' });
+    }
 
     return res.status(200).json({
-      user: sanitizeUser(rawUser),
+      user: sanitizeUser(persisted),
       accessToken,
       refreshToken,
-      note: 'Google endpoint is currently a placeholder and does not verify Google ID tokens.',
     });
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to complete Google placeholder auth' });
+    return res.status(500).json({ message: 'Failed to complete Google sign-in' });
   }
 };
